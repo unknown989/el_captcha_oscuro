@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <player.hpp>
 #include <sprite.hpp>
+#include "enemy.hpp"
 #include <vector>
 
 class Block : public Sprite {
@@ -21,7 +22,7 @@ class Level {
     Level(SDL_Renderer* renderer);
     virtual ~Level();
     virtual void render(SDL_Renderer* renderer);
-    virtual void handleEvents(SDL_Event* event);
+    virtual void handleEvents(SDL_Event* event, SDL_Renderer* renderer);
     void readLevel(const char* path, SDL_Renderer* renderer);
     void loadLevelBackground(const char* path, SDL_Renderer* renderer);
     bool isLevelLoaded() { return isLoaded; }
@@ -41,6 +42,7 @@ class Level {
     Mix_Music* level_music;
     bool isLoaded = false;
     bool isPlayingMusic = false;
+    Enemy* enemy;
 };
 
 Level::Level(SDL_Renderer* renderer) : gravity(0.0f, 9.8f) {
@@ -122,6 +124,12 @@ void Level::readLevel(const char* path, SDL_Renderer* renderer) {
             player = new Player(renderer, world, col * W_SPRITESIZE, row * W_SPRITESIZE);
             break;
         }
+        case 'E': {
+            enemy = new Enemy(renderer);
+            enemy->setPosition(col * W_SPRITESIZE, row * W_SPRITESIZE);
+            enemy->setSize(W_SPRITESIZE, W_SPRITESIZE);
+            break;
+        }
         case '.': {
             col++;
             continue;
@@ -175,8 +183,8 @@ void Level::render(SDL_Renderer* renderer) {
         player->render(renderer);
     }
 }
-void Level::handleEvents(SDL_Event* event) {
+void Level::handleEvents(SDL_Event* event, SDL_Renderer* renderer) {
     if (player) {
-        player->handleEvents(event);
+        player->handleEvents(event, renderer);
     }
 }

@@ -1,3 +1,4 @@
 D = Dirt
 P = Player
 . = Nothing
+E = enemy

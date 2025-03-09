@@ -147,7 +147,7 @@ void Game::handleEvents() {
     menu->handleEvents(event);
   }
   if (GameState::current_level >= 0) {
-    levels[GameState::current_level]->handleEvents(&event);
+    levels[GameState::current_level]->handleEvents(&event, renderer);
   }
 
   if (event.type == SDL_KEYDOWN) {
