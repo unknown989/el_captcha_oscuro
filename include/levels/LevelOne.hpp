@@ -20,13 +20,13 @@ LevelOne::LevelOne(SDL_Renderer* renderer) : Level(renderer) {
     SDL_Log("Loading level one...");
     readLevel("levels/lvl1.txt", renderer);
     loadLevelBackground("assets/backgrounds/level1.png", renderer);
-    level_music = Mix_LoadMUS("assets/La Fiola 2.wav");
+    level_music = Mix_LoadMUS("assets/music/La Fiola 2.wav");
     if (level_music == NULL) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't load music: %s, music wont be played", Mix_GetError());
     }
     
     // Load font for player stats
-    statsFont = TTF_OpenFont("assets/ARCADECLASSIC.ttf", 24);
+    statsFont = TTF_OpenFont("assets/fonts/ARCADECLASSIC.ttf", 24);
     if (!statsFont) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to load font: %s", TTF_GetError());
     }
@@ -37,9 +37,6 @@ LevelOne::LevelOne(SDL_Renderer* renderer) : Level(renderer) {
 
 void LevelOne::render(SDL_Renderer* renderer) {
     Level::render(renderer);
-    if (enemy) {
-        enemy->render(renderer, enemy->getX(), enemy->getY());
-    }
     
     // Make sure player bullets are updated in the level's update cycle
     if (player) {

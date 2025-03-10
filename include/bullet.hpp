@@ -17,8 +17,8 @@ private:
     float x, y;
     float angle;
     float speed;
-    int width = 16;
-    int height = 8;
+    int width = 8;
+    int height = 4;
 };
 
 Bullet::Bullet(SDL_Renderer* renderer, float x, float y, float angle, float speed) 

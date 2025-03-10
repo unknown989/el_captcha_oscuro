@@ -159,7 +159,6 @@ void Player::renderBullets(SDL_Renderer *renderer) {
 }
 
 Player::Player(SDL_Renderer *renderer, b2World *world, int x, int y) {
-  loadFromFile("assets/blocks/player.png", renderer);
   state = IDLE;
   previousState = IDLE;
   b2BodyDef bodyDef;

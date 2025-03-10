@@ -27,7 +27,7 @@ mainmenu::mainmenu(SDL_Renderer* renderer, std::function<void()> start_callback,
                    std::function<void()> settings_callback,
                    std::function<void()> exit_callback) {
     SDL_Surface* a =
-        Texture::loadFromFile("assets/image.png", renderer, background_tex);
+        Texture::loadFromFile("assets/backgrounds/menu.png", renderer, background_tex);
     if (a == nullptr) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
                      "Unable to load image %s! SDL_image Error: %s\n",
@@ -38,7 +38,7 @@ mainmenu::mainmenu(SDL_Renderer* renderer, std::function<void()> start_callback,
     background_rect.y = 0;
     background_rect.w = W_WIDTH;
     background_rect.h = W_HEIGHT;
-    this->font = TTF_OpenFont("assets/ARCADECLASSIC.TTF", 60);
+    this->font = TTF_OpenFont("assets/fonts/ARCADECLASSIC.TTF", 60);
     SDL_Color color = {255, 255, 255};
     SDL_Surface* text_surface = TTF_RenderText_Solid(font, W_NAME, color);
     text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
@@ -66,8 +66,11 @@ mainmenu::mainmenu(SDL_Renderer* renderer, std::function<void()> start_callback,
 }
 
 mainmenu::~mainmenu() {
+    if(font){
+        TTF_CloseFont(font);
+        font = nullptr;
+    }
     SDL_DestroyTexture(background_tex);
-
     SDL_DestroyTexture(text_texture);
 }
 

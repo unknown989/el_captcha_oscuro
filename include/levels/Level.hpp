@@ -2,6 +2,7 @@
 #include <CONSTANTS.hpp>
 #include <SDL2/SDL.h>
 #include <box2d/box2d.h>
+#include "SDL2/SDL_mixer.h"
 #include <cstdio>
 #include <player.hpp>
 #include <sprite.hpp>
@@ -143,7 +144,7 @@ void Level::readLevel(const char* path, SDL_Renderer* renderer) {
             block->type = blockType;
             block->setPosition(col * W_SPRITESIZE, row * W_SPRITESIZE);
             blocks.push_back(block);
-            SDL_Log("Created block type %c at position %d,%d", blockType, col, row);
+            // SDL_Log("Created block type %c at position %d,%d", blockType, col, row);
         }
         col++;
     }
