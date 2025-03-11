@@ -21,12 +21,12 @@ This is a 2D game that features:
 - Box2D physics engine
 
 ## Project Structure
-CSClassGame/
-├── assets/           # Game assets (images, fonts, music)
-├── include/          # Header files
-├── levels/           # Level definition files
-├── lib/             # External libraries
-└── src/             # Source code
+CSClassGame/<br />
+&nbsp;&nbsp;├── assets/           # Game assets (images, fonts, music)<br />
+&nbsp;&nbsp;├── include/          # Header files<br />
+&nbsp;&nbsp;├── levels/           # Level definition files<br />
+&nbsp;&nbsp;├── lib/             # External libraries<br />
+&nbsp;&nbsp;└── src/             # Source code<br />
 
 ## Key Features
 
