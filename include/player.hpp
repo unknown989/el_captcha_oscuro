@@ -30,6 +30,19 @@ public:
   void fireBullet(SDL_Renderer *renderer);
   void updateBullets();
   void renderBullets(SDL_Renderer *renderer);
+  void takeDamage(int damage) {
+    health -= damage;
+    if (health < 0)
+      health = 0;
+  }
+  const std::list<std::unique_ptr<Bullet>> &getBulletsObj() const {
+    return bullets;
+  }
+  void removeBullet(Bullet *bullet) {
+    bullets.remove_if([bullet](const std::unique_ptr<Bullet> &b) {
+      return b.get() == bullet;
+    });
+  }
 
 private:
   PlayerState state;
@@ -81,8 +94,6 @@ private:
 
   void loadAnimations(SDL_Renderer *renderer);
   void updateAnimation();
-
-private:
   // Gun properties
   SDL_Texture *gunTexture = nullptr;
   float gunRotation = 0.0f;
@@ -96,8 +107,6 @@ private:
                        // seconds at 60 FPS)
   int reloadTimer = 0;
   int maxBullets = 10;
-
-
 };
 
 void Player::fireBullet(SDL_Renderer *renderer) {
