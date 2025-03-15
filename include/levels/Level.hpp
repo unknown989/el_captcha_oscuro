@@ -9,7 +9,7 @@
 #include <sprite.hpp>
 #include <vector>
 
-
+// A block is a simple sprite with a type
 class Block : public Sprite {
 public:
   Block(SDL_Renderer *renderer, const char *texturePath) {
@@ -18,6 +18,8 @@ public:
   }
   char type;
 };
+// The base class for all levels
+// It contains the Box2D world, the player, the blocks, and the background
 
 class Level {
 public:
@@ -30,7 +32,6 @@ public:
   bool isLevelLoaded() { return isLoaded; }
   void loadLevel() {
     isLoaded = true;
-    SDL_Log("Level Loaded");
   }
   void unloadLevel() { isLoaded = false; }
   void update();
@@ -50,6 +51,7 @@ protected:
 };
 
 Level::Level(SDL_Renderer *renderer) : gravity(0.0f, 9.8f) {
+  // box2d setup
   world = new b2World(gravity);
   world->SetAllowSleeping(false);
 
@@ -79,6 +81,7 @@ Level::~Level() {
 }
 
 void Level::loadLevelBackground(const char *path, SDL_Renderer *renderer) {
+  // Load the background image
   SDL_Surface *loadedSurface =
       Texture::loadFromFile(path, renderer, background);
   if (loadedSurface == nullptr) {
@@ -89,8 +92,11 @@ void Level::loadLevelBackground(const char *path, SDL_Renderer *renderer) {
   }
   SDL_FreeSurface(loadedSurface);
 }
-
+// Read the level from a file
+// The file format is simple:
+// check levels/info.txt for reference
 void Level::readLevel(const char *path, SDL_Renderer *renderer) {
+  // Open the file
   FILE *file = fopen(path, "r");
   if (file == nullptr) {
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Could not open file %s", path);
@@ -99,7 +105,7 @@ void Level::readLevel(const char *path, SDL_Renderer *renderer) {
   int row = 0;
   int col = 0;
   char blockType;
-
+  // the level file format is 30 blocks by 17 blocks
   while ((blockType = fgetc(file)) != EOF && row < 30) {
     if (blockType == '\n') {
       row++;
@@ -107,8 +113,9 @@ void Level::readLevel(const char *path, SDL_Renderer *renderer) {
       continue;
     }
     Block *block = nullptr;
-
+    // Loading blocks according to the type
     switch (blockType) {
+      // Dirt block + physics
     case 'D': {
       block = new Block(renderer, "assets/blocks/dirt.png");
       b2BodyDef blockBodyDef;
@@ -125,19 +132,17 @@ void Level::readLevel(const char *path, SDL_Renderer *renderer) {
       break;
     }
     case 'P': {
+      // player sprite
       player =
           new Player(renderer, world, col * W_SPRITESIZE, row * W_SPRITESIZE);
       break;
     }
     case 'E': {
+      // enemy sprite
       enemy = new Enemy(renderer);
       enemy->setPosition(col * W_SPRITESIZE, row * W_SPRITESIZE);
       enemy->setSize(W_SPRITESIZE, W_SPRITESIZE);
       break;
-    }
-    case '.': {
-      col++;
-      continue;
     }
     default:
       col++;
@@ -148,8 +153,6 @@ void Level::readLevel(const char *path, SDL_Renderer *renderer) {
       block->type = blockType;
       block->setPosition(col * W_SPRITESIZE, row * W_SPRITESIZE);
       blocks.push_back(block);
-      // SDL_Log("Created block type %c at position %d,%d", blockType, col,
-      // row);
     }
     col++;
   }
@@ -178,13 +181,15 @@ void Level::update() {
 void Level::render(SDL_Renderer *renderer) {
   SDL_SetRenderDrawColor(renderer, 128, 128, 128, 255);
   SDL_RenderClear(renderer);
-
+  // Render the background
   if (background != nullptr) {
     SDL_RenderCopy(renderer, background, nullptr, nullptr);
   }
+  // Render the blocks
   for (Block *block : blocks) {
     block->render(renderer, block->getX(), block->getY());
   }
+  // Render the player
   if (player) {
     player->render(renderer);
   }
@@ -194,3 +199,4 @@ void Level::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
     player->handleEvents(event, renderer);
   }
 }
+// Code created by Mouttaki Omar(王明清)

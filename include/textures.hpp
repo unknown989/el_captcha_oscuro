@@ -1,9 +1,13 @@
 #pragma once
+#include <CONSTANTS.hpp>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
-#include <CONSTANTS.hpp>
 class Texture {
   public:
+    // Load a texture from a file
+    // @param path The path to the image file
+    // @param renderer The renderer to load the texture onto
+    // @param texture The texture to load the image onto
     static SDL_Surface* loadFromFile(const char* path, SDL_Renderer* renderer, SDL_Texture*& texture) {
         if (texture != nullptr) {
             SDL_DestroyTexture(texture);
@@ -25,3 +29,4 @@ class Texture {
         return loadedSurface;
     }
 };
+// Code created by Mouttaki Omar(王明清)

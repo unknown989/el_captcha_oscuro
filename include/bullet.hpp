@@ -3,6 +3,8 @@
 #include "textures.hpp"
 #include <list>
 #include <memory>
+#include <math.h>
+#include <cstdio>
 
 class Bullet {
 public:
@@ -49,6 +51,7 @@ void Bullet::update() {
 }
 
 void Bullet::render(SDL_Renderer *renderer) {
+  // Render bullet
   if (texture) {
     SDL_Rect destRect = {static_cast<int>(x - width / 2),
                          static_cast<int>(y - height / 2), width, height};
@@ -74,3 +77,4 @@ bool Bullet::isColliding(int targetX, int targetY, int targetWidth,
   return (bulletRight >= targetX && bulletLeft <= targetX + targetWidth &&
           bulletBottom >= targetY && bulletTop <= targetY + targetHeight);
 }
+// Code created by Mouttaki Omar(王明清)

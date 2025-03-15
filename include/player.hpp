@@ -679,4 +679,5 @@ void Player::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
       fireBullet(renderer);
     }
   }
-}
+
+// Code created by Mouttaki Omar(王明清)

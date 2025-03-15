@@ -37,6 +37,7 @@ Button::~Button() {
     }
 }
 void Button::loadFromFile(const char* path, SDL_Renderer* renderer) {
+    // loading the button's texture
     SDL_Surface* loadedSurface = Texture::loadFromFile(path, renderer, texture);
     if (loadedSurface == nullptr) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unable to load image %s! SDL_image Error: %s\n", path, SDL_GetError());
@@ -49,6 +50,7 @@ void Button::loadFromFile(const char* path, SDL_Renderer* renderer) {
     SDL_FreeSurface(loadedSurface);
 }
 void Button::render(SDL_Renderer* renderer) {
+    // if the button is hovered, darken the texture a bit
     if (isHoveredState) {
         SDL_SetTextureColorMod(texture, 200, 200, 200);
     } else {
@@ -65,6 +67,7 @@ void Button::setSize(int w, int h) {
     rect.h = h;
 }
 bool Button::isHovered(int x, int y) {
+    // check if the mouse is inside the button's rectangle
     if (x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h) {
         return true;
     }
@@ -75,7 +78,6 @@ void Button::handleEvents(SDL_Event event) {
     SDL_GetMouseState(&x, &y);
     if (event.type == SDL_MOUSEBUTTONDOWN) {
         if (isHovered(x, y)) {
-            SDL_Log("Button clicked!");
             if (callback != nullptr) {
                 callback();
             }
@@ -87,3 +89,4 @@ void Button::handleEvents(SDL_Event event) {
         isHoveredState = false;
     }
 }
+// Code created by Mouttaki Omar(王明清)

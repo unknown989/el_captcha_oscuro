@@ -1,10 +1,12 @@
 #pragma once
+#include "GameState.hpp"
 #include "Level.hpp"
 #include "enemy.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <cstdint>
 #include <string>
+
 
 class LevelLast : public Level {
 public:
@@ -26,14 +28,14 @@ private:
 
   float timeScale = 1.0f;
   uint32_t lastFrameTime = 0;
-  
+
   // Game state flags
   bool isGameOver = false;
   bool playerWon = false;
-  
+
   // Method to render game over or win screen
   void renderGameEndScreen(SDL_Renderer *renderer);
-  
+
   // Method to restart the level
   void restartLevel(SDL_Renderer *renderer);
 };
@@ -62,19 +64,25 @@ LevelLast::LevelLast(SDL_Renderer *renderer) : Level(renderer) {
 }
 
 void LevelLast::update() {
-  // Check for game over or win conditions first
-  if (player && player->getHealth() <= 0) {
-    isGameOver = true;
-    playerWon = false;
-    SDL_Log("Game Over - Player died");  // Add debug logging
+  // Check for game over or win conditions first - with more robust checking
+  if (player) {
+    int playerHealth = player->getHealth();
+    if (playerHealth <= 0) {
+      SDL_Log("Player health is %d - triggering Game Over", playerHealth);
+      isGameOver = true;
+      playerWon = false;
+    }
   }
-  
-  if (enemy && enemy->getHealth() <= 0) {
-    isGameOver = true;
-    playerWon = true;
-    SDL_Log("Game Over - Player won");  // Add debug logging
+
+  if (enemy) {
+    int enemyHealth = enemy->getHealth();
+    if (enemyHealth <= 0) {
+      SDL_Log("Enemy health is %d - triggering Win condition", enemyHealth);
+      isGameOver = true;
+      playerWon = true;
+    }
   }
-  
+
   // If game is over, don't update anything else
   if (isGameOver) {
     return;
@@ -91,16 +99,17 @@ void LevelLast::update() {
       // Normal speed
       timeScale = 1.0f;
     }
-    
+
     // Apply time scaling by delaying updates
     uint32_t currentTime = SDL_GetTicks();
     uint32_t elapsedTime = currentTime - lastFrameTime;
-    
+
     // Only update if enough time has passed based on time scale
-    if (elapsedTime < (16 / timeScale)) { // 16ms is roughly 60fps
-      return; // Skip this update to slow down the game
+    // This time scaling system might prevent death detection
+    if (elapsedTime < (16 / timeScale)) {
+      return; // This return skips the rest of update()
     }
-    
+
     lastFrameTime = currentTime;
   }
   Level::update();
@@ -202,12 +211,27 @@ void LevelLast::update() {
 }
 
 void LevelLast::render(SDL_Renderer *renderer) {
-  // Render the base level first
+  // Add sanity check at start of render
+  if (!isGameOver) {
+    if (player && player->getHealth() <= 0) {
+      SDL_Log("Late detection - Player death in render");
+      isGameOver = true;
+      playerWon = false;
+    }
+    if (enemy && enemy->getHealth() <= 0) {
+      SDL_Log("Late detection - Enemy death in render");
+      isGameOver = true;
+      playerWon = true;
+    }
+  }
+
+  // Render the base level
   Level::render(renderer);
 
   // Apply screen shake and blur if player health is low
   bool applyScreenEffects = false;
-  if (player && player->getHealth() <= player->getMaxHealth() / 2 && !isGameOver) {
+  if (player && player->getHealth() <= player->getMaxHealth() / 2 &&
+      !isGameOver) {
     applyScreenEffects = true;
 
     // Screen shake effect - make it more intense when game is slowed down
@@ -269,10 +293,11 @@ void LevelLast::render(SDL_Renderer *renderer) {
     renderPlayerStats(renderer);
     renderHealthBars(renderer);
   }
-  
+
   // Always check if game is over and render the appropriate screen
   if (isGameOver) {
-    SDL_Log("Rendering game end screen: %s", playerWon ? "Win" : "Game Over");  // Add debug logging
+    SDL_Log("Rendering game end screen: %s",
+            playerWon ? "Win" : "Game Over"); // Add debug logging
     renderGameEndScreen(renderer);
   }
 }
@@ -305,6 +330,34 @@ void LevelLast::renderHealthBars(SDL_Renderer *renderer) {
     // Draw border (white)
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderDrawRect(renderer, &bgRect);
+
+    // Display enemy health number above health bar
+    if (statsFont) {
+      // Create health text
+      std::string enemyHealthText = std::to_string(currentHealth);
+
+      // Set text color (white)
+      SDL_Color textColor = {255, 255, 255, 255};
+
+      // Render health text
+      SDL_Surface *enemyHealthSurface =
+          TTF_RenderText_Solid(statsFont, enemyHealthText.c_str(), textColor);
+      if (enemyHealthSurface) {
+        SDL_Texture *enemyHealthTexture =
+            SDL_CreateTextureFromSurface(renderer, enemyHealthSurface);
+        if (enemyHealthTexture) {
+          // Position text above the health bar
+          SDL_Rect enemyHealthRect = {
+              barX + (barWidth - enemyHealthSurface->w) /
+                         2,                     // Center text above bar
+              barY - enemyHealthSurface->h - 5, // 5 pixels above the health bar
+              enemyHealthSurface->w, enemyHealthSurface->h};
+          SDL_RenderCopy(renderer, enemyHealthTexture, NULL, &enemyHealthRect);
+          SDL_DestroyTexture(enemyHealthTexture);
+        }
+        SDL_FreeSurface(enemyHealthSurface);
+      }
+    }
   }
 
   // Render player health bar
@@ -382,12 +435,33 @@ void LevelLast::renderPlayerStats(SDL_Renderer *renderer) {
 }
 
 void LevelLast::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
-  // Check for 'G' key press to restart level when game is over
-  if (isGameOver && event->type == SDL_KEYDOWN && event->key.keysym.sym == SDLK_g) {
-    restartLevel(renderer);
-    return;
+  if (event->type == SDL_KEYDOWN && event->key.keysym.sym == SDLK_p) {
+    if (player) {
+      SDL_Log("Player health: %d/%d", player->getHealth(),
+              player->getMaxHealth());
+    }
+    if (enemy) {
+      SDL_Log("Enemy health: %d/400", enemy->getHealth());
+    }
+    SDL_Log("Game over state: %s", isGameOver ? "true" : "false");
   }
-  
+
+  // Modified event handling structure
+  if (isGameOver) {
+    if (event->type == SDL_KEYDOWN) {
+      if (playerWon && event->key.keysym.sym == SDLK_c) {
+        SDL_Log("Transitioning to credits screen");
+        GameState::setCurrentLevel(99);
+        isGameOver = false;
+      }
+      else if (event->key.keysym.sym == SDLK_g) {
+        SDL_Log("Restarting level after game over");
+        restartLevel(renderer);
+      }
+    }
+    return; // Skip other input processing when game is over
+  }
+
   // Only handle other events if game is not over
   if (!isGameOver) {
     Level::handleEvents(event, renderer);
@@ -407,30 +481,34 @@ void LevelLast::renderGameEndScreen(SDL_Renderer *renderer) {
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 200);
   SDL_Rect overlay = {0, 0, screenWidth, screenHeight};
   SDL_RenderFillRect(renderer, &overlay);
-  
+
   // Prepare text to display
   std::string mainMessage = playerWon ? "YOU WIN!" : "GAME OVER";
-  std::string subMessage = playerWon ? "Congratulations!" : "Press G to restart";
-  
-  SDL_Log("Rendering end screen with message: %s", mainMessage.c_str());  // Add debug logging
-  
+  std::string subMessage = playerWon ? "Press C for Credits"
+                                     : // Changed win message
+                               "Press G to restart";
+
+  SDL_Log("Rendering end screen with message: %s",
+          mainMessage.c_str()); // Add debug logging
+
   // Set text color
-  SDL_Color textColor = playerWon ? SDL_Color{255, 215, 0, 255} : SDL_Color{255, 0, 0, 255}; // Gold for win, red for game over
+  SDL_Color textColor =
+      playerWon ? SDL_Color{255, 215, 0, 255}
+                : SDL_Color{255, 0, 0, 255}; // Gold for win, red for game over
   SDL_Color subTextColor = {255, 255, 255, 255}; // White for sub-message
-  
+
   // Render main message (larger font)
-  TTF_Font* largeFont = TTF_OpenFont("assets/fonts/ARCADECLASSIC.ttf", 72);
+  TTF_Font *largeFont = TTF_OpenFont("assets/fonts/ARCADECLASSIC.ttf", 72);
   if (largeFont) {
-    SDL_Surface* messageSurface = TTF_RenderText_Solid(largeFont, mainMessage.c_str(), textColor);
+    SDL_Surface *messageSurface =
+        TTF_RenderText_Solid(largeFont, mainMessage.c_str(), textColor);
     if (messageSurface) {
-      SDL_Texture* messageTexture = SDL_CreateTextureFromSurface(renderer, messageSurface);
+      SDL_Texture *messageTexture =
+          SDL_CreateTextureFromSurface(renderer, messageSurface);
       if (messageTexture) {
-        SDL_Rect messageRect = {
-          (screenWidth - messageSurface->w) / 2,
-          (screenHeight - messageSurface->h) / 2 - 50,
-          messageSurface->w,
-          messageSurface->h
-        };
+        SDL_Rect messageRect = {(screenWidth - messageSurface->w) / 2,
+                                (screenHeight - messageSurface->h) / 2 - 50,
+                                messageSurface->w, messageSurface->h};
         SDL_RenderCopy(renderer, messageTexture, NULL, &messageRect);
         SDL_DestroyTexture(messageTexture);
       }
@@ -438,19 +516,19 @@ void LevelLast::renderGameEndScreen(SDL_Renderer *renderer) {
     }
     TTF_CloseFont(largeFont);
   }
-  
+
   // Render sub-message
   if (statsFont) {
-    SDL_Surface* subMessageSurface = TTF_RenderText_Solid(statsFont, subMessage.c_str(), subTextColor);
+    SDL_Surface *subMessageSurface =
+        TTF_RenderText_Solid(statsFont, subMessage.c_str(), subTextColor);
     if (subMessageSurface) {
-      SDL_Texture* subMessageTexture = SDL_CreateTextureFromSurface(renderer, subMessageSurface);
+      SDL_Texture *subMessageTexture =
+          SDL_CreateTextureFromSurface(renderer, subMessageSurface);
       if (subMessageTexture) {
-        SDL_Rect subMessageRect = {
-          (screenWidth - subMessageSurface->w) / 2,
-          (screenHeight - subMessageSurface->h) / 2 + 50,
-          subMessageSurface->w,
-          subMessageSurface->h
-        };
+        SDL_Rect subMessageRect = {(screenWidth - subMessageSurface->w) / 2,
+                                   (screenHeight - subMessageSurface->h) / 2 +
+                                       50,
+                                   subMessageSurface->w, subMessageSurface->h};
         SDL_RenderCopy(renderer, subMessageTexture, NULL, &subMessageRect);
         SDL_DestroyTexture(subMessageTexture);
       }
@@ -463,22 +541,30 @@ void LevelLast::restartLevel(SDL_Renderer *renderer) {
   // Reset game state flags
   isGameOver = false;
   playerWon = false;
-  
+
   // Reload the level
   readLevel("levels/lvl_last.txt", renderer);
-  
+
   // Reset player and enemy
   if (player) {
     player->takeDamage(-player->getMaxHealth()); // Heal to full health
+    SDL_Log("Reset player health to %d", player->getHealth());
+    player->shouldShot(true); // Make sure player can shoot
   }
-  
+
   if (enemy) {
     enemy->takeDamage(-enemy->getMaxHealth()); // Heal to full health
+    SDL_Log("Reset enemy health to %d", enemy->getHealth());
     enemy->linkToPlayer(player);
   }
-  
+
   // Reset music
   isPlayingMusic = false;
+
+  // Reset other state variables
+  timeScale = 1.0f;
+  lastFrameTime = SDL_GetTicks();
+  enemyMovementTimer = 0;
 }
 LevelLast::~LevelLast() {
   // Clean up font
@@ -487,3 +573,4 @@ LevelLast::~LevelLast() {
     statsFont = nullptr;
   }
 }
+// Code created by Mouttaki Omar(王明清)

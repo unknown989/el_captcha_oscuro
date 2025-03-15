@@ -22,7 +22,7 @@ protected:
   float minY = 400;       // Minimum Y position to prevent touching ground (from top)
   float maxY = 800;       // Maximum Y position (near bottom of screen)
   int maxHealth = 400;    // Added to track max health
-  int baseFireRate = 500; // Slower initial fire rate
+  int baseFireRate = 400; // Slower initial fire rate
   
   // Flight pattern variables
   float flightTimer = 0;
@@ -337,3 +337,5 @@ void Enemy::updateFlightPattern() {
   setPosition(newX, newY);
 }
 Enemy::~Enemy() { bullets.clear(); }
+
+// Code created by Mouttaki Omar(王明清)

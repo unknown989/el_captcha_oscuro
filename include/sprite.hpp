@@ -42,6 +42,7 @@ Sprite::~Sprite() {
 }
 
 bool Sprite::loadFromFile(const char* path, SDL_Renderer* renderer) {
+    // Load image at specified path
     SDL_Surface* loadedSurface = Texture::loadFromFile(path, renderer, texture);
     if (loadedSurface == nullptr) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unable to load image %s! SDL_image Error: %s\n", path, SDL_GetError());
@@ -61,7 +62,8 @@ bool Sprite::loadFromFile(const char* path, SDL_Renderer* renderer) {
 }
 
 void Sprite::render(SDL_Renderer* renderer, int x, int y) {
-    // if(isHidden) return;
+    // Render to screen, if not hidden
+    if(isHidden) return;
     destRect.x = x;
     destRect.y = y;
     SDL_RenderCopy(renderer, texture, &srcRect, &destRect);
@@ -78,3 +80,4 @@ void Sprite::setSize(int w, int h) {
     destRect.w = w;
     destRect.h = h;
 }
+// Code created by Mouttaki Omar(王明清)

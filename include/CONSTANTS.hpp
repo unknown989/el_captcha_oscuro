@@ -1,6 +1,6 @@
 #pragma once
 #include <SDL2/SDL.h>
-constexpr const bool IS_DEBUG = false;
+constexpr const bool IS_DEBUG = false; // Set to true to run in windowed mode
 int W_WIDTH = 800;
 int W_HEIGHT = 450;
 constexpr const char* W_NAME = "El Captcha Oscuro";
@@ -10,6 +10,7 @@ constexpr const char* W_FONTS = "./fonts/";
 constexpr const int W_SPRITESIZE = 64;
 
 void initializeDisplayMode() {
+    // Get the current display mode to know the full resolution of the screen
     SDL_DisplayMode displayMode;
     int a = SDL_GetCurrentDisplayMode(0, &displayMode);
     if (a != 0) {
@@ -21,3 +22,5 @@ void initializeDisplayMode() {
         W_HEIGHT = displayMode.h;
     }
 }
+
+// Code created by Mouttaki Omar(王明清)
