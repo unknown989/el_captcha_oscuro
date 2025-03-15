@@ -152,8 +152,10 @@ void Game::render() {
   // rendering the loading screen
   else if (GameState::isLoading) {
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-  } else {
-    // Render Level
+  } 
+  // Added special case for credits or regular levels
+  else {
+    // Render Level or Credits
     SDL_SetRenderDrawColor(renderer, 128, 128, 128, 255);
     current_level_obj->render(renderer);
   }
@@ -167,15 +169,16 @@ void Game::handleEvents() {
     GameState::running = false;
   }
 
-  if (GameState::isMenu) {
-    menu->handleEvents(event);
+  // Modified menu event handling to ensure it works after returning from credits
+  if (GameState::isMenu || GameState::current_level < 0) {
+    if (menu != nullptr) {
+      menu->handleEvents(event);
+    }
   }
-  // handle events for the current level
-  if ((GameState::current_level >= 0) &&
-      !GameState::isLoading) {
+  // Handle events for the current level
+  else if (GameState::current_level >= 0 && !GameState::isLoading) {
     current_level_obj->handleEvents(&event, renderer);
   }
-
 
   if (event.type == SDL_KEYDOWN) {
     // make sdl break the game if Q was pressed

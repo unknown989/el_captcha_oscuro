@@ -435,41 +435,42 @@ void LevelLast::renderPlayerStats(SDL_Renderer *renderer) {
 }
 
 void LevelLast::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
+  // Debug check - print health values when P is pressed
   if (event->type == SDL_KEYDOWN && event->key.keysym.sym == SDLK_p) {
     if (player) {
-      SDL_Log("Player health: %d/%d", player->getHealth(),
-              player->getMaxHealth());
+      SDL_Log("Player health: %d/%d", player->getHealth(), player->getMaxHealth());
     }
     if (enemy) {
       SDL_Log("Enemy health: %d/400", enemy->getHealth());
     }
     SDL_Log("Game over state: %s", isGameOver ? "true" : "false");
+    SDL_Log("Current level: %d", GameState::current_level);
   }
 
-  // Modified event handling structure
+  // Handle game over state inputs
   if (isGameOver) {
     if (event->type == SDL_KEYDOWN) {
       if (playerWon && event->key.keysym.sym == SDLK_c) {
         SDL_Log("Transitioning to credits screen");
         GameState::setCurrentLevel(99);
-        isGameOver = false;
+        GameState::isLoading = true;  // This is the key fix - we need to set isLoading to true
+        return;
       }
       else if (event->key.keysym.sym == SDLK_g) {
         SDL_Log("Restarting level after game over");
         restartLevel(renderer);
+        return;
       }
     }
     return; // Skip other input processing when game is over
   }
 
   // Only handle other events if game is not over
-  if (!isGameOver) {
-    Level::handleEvents(event, renderer);
-    if (isLoaded && !isPlayingMusic) {
-      Mix_VolumeMusic(100);
-      Mix_PlayMusic(level_music, -1);
-      isPlayingMusic = true;
-    }
+  Level::handleEvents(event, renderer);
+  if (isLoaded && !isPlayingMusic) {
+    Mix_VolumeMusic(100);
+    Mix_PlayMusic(level_music, -1);
+    isPlayingMusic = true;
   }
 }
 void LevelLast::renderGameEndScreen(SDL_Renderer *renderer) {
