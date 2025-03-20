@@ -10,7 +10,7 @@ class Enemy : public Sprite {
 protected:
   Player *targetPlayer;
   std::list<std::unique_ptr<Bullet>> bullets;
-  int health = 20;   // Increased health to 400
+  int health = 400;   // Increased health to 400
   int fireRate = 120; // Frames between shots
   int fireTimer = 0;
   int bulletSpeed = 2;

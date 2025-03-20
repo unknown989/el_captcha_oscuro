@@ -14,7 +14,7 @@ public:
   ~LevelLast();
   void render(SDL_Renderer *renderer);
   void handleEvents(SDL_Event *event, SDL_Renderer *renderer);
-  void update();
+  void update() override;
 
 private:
   TTF_Font *statsFont = nullptr;
@@ -43,7 +43,7 @@ private:
 LevelLast::LevelLast(SDL_Renderer *renderer) : Level(renderer) {
   SDL_Log("Loading level one...");
   readLevel("levels/lvl_last.txt", renderer);
-  loadLevelBackground("assets/backgrounds/level1.png", renderer);
+  loadLevelBackground("assets/backgrounds/bosslevel.png", renderer);
   level_music = Mix_LoadMUS("assets/music/La Fiola 2.wav");
   if (level_music == NULL) {
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
@@ -64,7 +64,7 @@ LevelLast::LevelLast(SDL_Renderer *renderer) : Level(renderer) {
 }
 
 void LevelLast::update() {
-  // Check for game over or win conditions first - with more robust checking
+  Level::update();
   if (player) {
     int playerHealth = player->getHealth();
     if (playerHealth <= 0) {

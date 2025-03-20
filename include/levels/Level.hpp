@@ -34,7 +34,7 @@ public:
     isLoaded = true;
   }
   void unloadLevel() { isLoaded = false; }
-  void update();
+  virtual void update();
   bool isLevelOver() { return this->over; };
 
 protected:

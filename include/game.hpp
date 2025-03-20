@@ -1,5 +1,7 @@
 #include "CONSTANTS.hpp"
+#include "SDL2/SDL_log.h"
 #include "levels/Credits.hpp"
+#include "levels/LevelLamp.hpp"
 #include "levels/LevelLast.hpp"
 #include "mainmenu.hpp"
 #include "sprite.hpp"
@@ -8,6 +10,7 @@
 #include <SDL2/SDL_mixer.h>
 #include <levels/Level.hpp>
 #include <levels/LevelOne.hpp>
+
 
 class Game {
 
@@ -107,14 +110,19 @@ void Game::update() {
     } else {
       current_level_obj->loadLevel();
     }
-  } // Showing a loading screen while the level is loading(it may not be shown cause loading level's is pretty fast)
-   else if (GameState::isLoading) {
+  } // Showing a loading screen while the level is loading(it may not be shown
+    // cause loading level's is pretty fast)
+  else if (GameState::isLoading) {
     switch (GameState::current_level) {
     case 0:
       current_level_obj = new LevelOne(renderer);
       GameState::isLoading = false;
       break;
     case 1:
+      current_level_obj = new LevelLamp(renderer);
+      GameState::isLoading = false;
+      break;
+    case 2:
       current_level_obj = new LevelLast(renderer);
       GameState::isLoading = false;
       break;
@@ -152,7 +160,7 @@ void Game::render() {
   // rendering the loading screen
   else if (GameState::isLoading) {
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-  } 
+  }
   // Added special case for credits or regular levels
   else {
     // Render Level or Credits
@@ -169,7 +177,8 @@ void Game::handleEvents() {
     GameState::running = false;
   }
 
-  // Modified menu event handling to ensure it works after returning from credits
+  // Modified menu event handling to ensure it works after returning from
+  // credits
   if (GameState::isMenu || GameState::current_level < 0) {
     if (menu != nullptr) {
       menu->handleEvents(event);
