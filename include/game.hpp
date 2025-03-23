@@ -4,12 +4,12 @@
 #include "levels/LevelLamp.hpp"
 #include "levels/LevelLast.hpp"
 #include "mainmenu.hpp"
-#include "sprite.hpp"
 #include <GameState.hpp>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
 #include <levels/Level.hpp>
 #include <levels/LevelOne.hpp>
+#include <levels/LevelZero.hpp>
 
 
 class Game {
@@ -115,14 +115,18 @@ void Game::update() {
   else if (GameState::isLoading) {
     switch (GameState::current_level) {
     case 0:
-      current_level_obj = new LevelOne(renderer);
+      current_level_obj = new LevelZero(renderer);
       GameState::isLoading = false;
       break;
     case 1:
-      current_level_obj = new LevelLamp(renderer);
+      current_level_obj = new LevelOne(renderer);
       GameState::isLoading = false;
       break;
     case 2:
+      current_level_obj = new LevelLamp(renderer);
+      GameState::isLoading = false;
+      break;
+    case 3:
       current_level_obj = new LevelLast(renderer);
       GameState::isLoading = false;
       break;

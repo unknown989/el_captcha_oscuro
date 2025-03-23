@@ -10,5 +10,6 @@ namespace GameState {
     bool isLoading = false;
     void setCurrentLevel(int level){
         current_level = level;
+        isLoading = true;
     }
 }

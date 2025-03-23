@@ -26,6 +26,9 @@ public:
   int getHealth() const { return health; }
   int getBullets() const { return bulletsCount; }
   int getMaxHealth() const { return maxHealth; }
+  int getMaxBullets() const { return maxBullets; } // Added missing method
+  float getVelocityX() const { return body->GetLinearVelocity().x; } // Added missing method
+  float getVelocityY() const { return body->GetLinearVelocity().y; } // Added missing method
   void shouldShot(bool should) { canShot = should; }
   void fireBullet(SDL_Renderer *renderer);
   void updateBullets();
@@ -680,4 +683,3 @@ void Player::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
     }
   }
 }
-// Code created by Mouttaki Omar(王明清)
