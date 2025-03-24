@@ -6,11 +6,11 @@
 #include "mainmenu.hpp"
 #include <GameState.hpp>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_mixer.h>
 #include <levels/Level.hpp>
 #include <levels/LevelOne.hpp>
+#include <levels/LevelTrivia.hpp>
 #include <levels/LevelZero.hpp>
-
+#include <music.hpp>
 
 class Game {
 
@@ -27,8 +27,6 @@ private:
   SDL_Window *window;
   SDL_Renderer *renderer;
   SDL_Event event;
-  bool isPlayingMenuMusic = true;
-  Mix_Music *menumusic;
   Level *current_level_obj = nullptr;
   int current_level = 0;
 };
@@ -62,7 +60,7 @@ Game::Game() {
                  SDL_GetError());
   }
 
-  if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+  if (!MUSIC.init()) {
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
                  "SDL_mixer could not initialize! SDL_mixer Error: %s\n",
                  Mix_GetError());
@@ -73,34 +71,23 @@ Game::Game() {
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create renderer: %s",
                  SDL_GetError());
   }
+  // Music
+  MUSIC.loadMusic("menu", "assets/music/Sadness to happiness.wav");
+  MUSIC.loadMusic("boss", "assets/music/La Fiola 2.wav"); 
+  MUSIC.loadMusic("amicitia", "assets/music/Amicitia.wav");
+  MUSIC.loadMusic("enigma", "assets/music/Enigma #2.wav");
   // Menu
-  menumusic = Mix_LoadMUS("assets/music/Sadness to happiness.wav");
-  if (menumusic == NULL) {
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                 "Couldn't load music: %s, music wont be played",
-                 Mix_GetError());
-  }
-  // playing the menu's music
-  if (isPlayingMenuMusic && menumusic != NULL) {
-    Mix_VolumeMusic(10);
-    Mix_PlayMusic(menumusic, -1);
-  }
   // using inline functions with menu's buttons to change the state of the game
   menu = new mainmenu(
       renderer,
       [this] {
         GameState::isMenu = false;
-        GameState::setCurrentLevel(1);
+        GameState::setCurrentLevel(0);
         GameState::isLoading = true;
       },
       NULL, [] { GameState::running = false; });
 }
 void Game::update() {
-  if (GameState::isMenu) {
-    isPlayingMenuMusic = true;
-  } else {
-    isPlayingMenuMusic = false;
-  }
 
   // Loading and updating the current level
   if (!GameState::isMenu && GameState::current_level >= 0 &&
@@ -115,18 +102,37 @@ void Game::update() {
   else if (GameState::isLoading) {
     switch (GameState::current_level) {
     case 0:
+      if (current_level_obj != nullptr) {
+        delete current_level_obj;
+      }
       current_level_obj = new LevelZero(renderer);
       GameState::isLoading = false;
       break;
     case 1:
+      if (current_level_obj != nullptr) {
+        delete current_level_obj;
+      }
       current_level_obj = new LevelOne(renderer);
       GameState::isLoading = false;
       break;
     case 2:
+      if (current_level_obj != nullptr) {
+        delete current_level_obj;
+      }
       current_level_obj = new LevelLamp(renderer);
       GameState::isLoading = false;
       break;
     case 3:
+      if (current_level_obj != nullptr) {
+        delete current_level_obj;
+      }
+      current_level_obj = new LevelTrivia(renderer);
+      GameState::isLoading = false;
+      break;
+    case 4:
+      if (current_level_obj != nullptr) {
+        delete current_level_obj;
+      }
       current_level_obj = new LevelLast(renderer);
       GameState::isLoading = false;
       break;
@@ -205,7 +211,6 @@ void Game::clean() {
   if (current_level_obj) {
     delete current_level_obj;
   }
-  Mix_FreeMusic(menumusic);
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
   Mix_Quit();

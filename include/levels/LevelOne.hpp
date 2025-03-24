@@ -2,8 +2,9 @@
 #include "Level.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <music.hpp>
 #include <string>
-#include <vector>
+
 
 class LevelOne : public Level {
 public:
@@ -53,12 +54,7 @@ LevelOne::LevelOne(SDL_Renderer *renderer) : Level(renderer) {
   SDL_Log("Loading level one...");
   readLevel("levels/lvl1.txt", renderer);
   loadLevelBackground("assets/backgrounds/level1.png", renderer);
-  level_music = Mix_LoadMUS("assets/music/La Fiola 2.wav");
-  if (level_music == NULL) {
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                 "Couldn't load music: %s, music wont be played",
-                 Mix_GetError());
-  }
+  MUSIC.playMusic("enigma");
 
   // Load fonts
   statsFont = TTF_OpenFont("assets/fonts/ARCADECLASSIC.ttf", 24);
@@ -84,45 +80,16 @@ LevelOne::LevelOne(SDL_Renderer *renderer) : Level(renderer) {
 void LevelOne::update() {
   Level::update();
 
-  // Update tutorial state based on player actions
+  // Update bullet logic if player exists
   if (player) {
-    // Check player movement for tutorial progression
-    if (tutorialState == MOVE_LEFT_RIGHT) {
-      if (player->getVelocityX() < -0.1f)
-        movedLeft = true;
-      if (player->getVelocityX() > 0.1f)
-        movedRight = true;
-
-      if (movedLeft && movedRight) {
-        tutorialState = WALK_SLOW;
-      }
-    } else if (tutorialState == WALK_SLOW) {
-      // Continuous CTRL key check
-      const Uint8 *keyState = SDL_GetKeyboardState(NULL);
-      bool ctrlPressed = keyState[SDL_SCANCODE_LCTRL] || keyState[SDL_SCANCODE_RCTRL];
-      
-      // Check for sustained slow movement while CTRL is held
-      if (ctrlPressed && abs(player->getVelocityX()) > 1.0f && abs(player->getVelocityX()) < 3.0f) {
-        walkedSlow = true;
-      }
-    }
-    // Check for dash (high velocity spike)
-    if (abs(player->getVelocityX()) > 20.0f) {
-      dashed = true;
-    }
-    
-    if (dashed) {
-      tutorialState = AIM;
-    }
+    player->updateBullets();
   }
 
-  // Flash the advance message every second when ready
-  if (readyToAdvance) {
-    Uint32 currentTime = SDL_GetTicks();
-    if (currentTime - messageTimer > 1000) {
-      showAdvanceMessage = !showAdvanceMessage;
-      messageTimer = currentTime;
-    }
+  // Flash the advance message every second
+  Uint32 currentTime = SDL_GetTicks();
+  if (currentTime - messageTimer > 1000) {
+    showAdvanceMessage = !showAdvanceMessage;
+    messageTimer = currentTime;
   }
 }
 
@@ -183,24 +150,15 @@ void LevelOne::renderTutorial(SDL_Renderer *renderer) {
   if (!tutorialFont)
     return;
 
-  SDL_Color textColor = {255, 255, 0, 255};       // Yellow for instructions
-  SDL_Color completedColor = {0, 255, 0, 255};    // Green for completed tasks
-  SDL_Color advanceColor = {255, 0, 0, 255};      // Red for advance message
-  SDL_Color disabledColor = {128, 128, 128, 255}; // Gray for disabled tasks
+  SDL_Color textColor = {255, 255, 0, 255};  // Yellow for instructions
+  SDL_Color advanceColor = {255, 0, 0, 255}; // Red for advance message
 
   std::string instructionText;
   int yPos = 100;
-  int yStep = 40; // Reduced vertical spacing between instructions
+  int yStep = 40; // Spacing between instructions
 
   // Movement instructions
-  if (tutorialState == MOVE_LEFT_RIGHT) {
-    instructionText = "Use A and D keys to move left and right";
-    textColor = {255, 255, 0, 255}; // Yellow
-  } else {
-    instructionText = "Move left and right  COMPLETED";
-    textColor = completedColor;
-  }
-
+  instructionText = "Use A and D keys to move left and right";
   SDL_Surface *surface =
       TTF_RenderText_Solid(tutorialFont, instructionText.c_str(), textColor);
   if (surface) {
@@ -215,17 +173,7 @@ void LevelOne::renderTutorial(SDL_Renderer *renderer) {
 
   // Walk slow instructions
   yPos += yStep;
-  if (tutorialState < WALK_SLOW) {
-    textColor = disabledColor;
-    instructionText = "Hold CTRL to walk slowly";
-  } else if (tutorialState == WALK_SLOW) {
-    textColor = {255, 255, 0, 255}; // Yellow
-    instructionText = "Hold CTRL to walk slowly";
-  } else {
-    textColor = completedColor;
-    instructionText = "Walk slowly  COMPLETED";
-  }
-
+  instructionText = "Hold CTRL to walk slowly";
   surface =
       TTF_RenderText_Solid(tutorialFont, instructionText.c_str(), textColor);
   if (surface) {
@@ -240,17 +188,7 @@ void LevelOne::renderTutorial(SDL_Renderer *renderer) {
 
   // Dash instructions
   yPos += yStep;
-  if (tutorialState < DASH) {
-    textColor = disabledColor;
-    instructionText = "Press SHIFT to dash";
-  } else if (tutorialState == DASH) {
-    textColor = {255, 255, 0, 255}; // Yellow
-    instructionText = "Press SHIFT to dash";
-  } else {
-    textColor = completedColor;
-    instructionText = "Dash  COMPLETED";
-  }
-
+  instructionText = "Press SHIFT to dash";
   surface =
       TTF_RenderText_Solid(tutorialFont, instructionText.c_str(), textColor);
   if (surface) {
@@ -265,17 +203,7 @@ void LevelOne::renderTutorial(SDL_Renderer *renderer) {
 
   // Aim instructions
   yPos += yStep;
-  if (tutorialState < AIM) {
-    textColor = disabledColor;
-    instructionText = "Move the mouse to aim";
-  } else if (tutorialState == AIM) {
-    textColor = {255, 255, 0, 255}; // Yellow
-    instructionText = "Move the mouse to aim";
-  } else {
-    textColor = completedColor;
-    instructionText = "Aim  COMPLETED";
-  }
-
+  instructionText = "Move the mouse to aim";
   surface =
       TTF_RenderText_Solid(tutorialFont, instructionText.c_str(), textColor);
   if (surface) {
@@ -290,17 +218,7 @@ void LevelOne::renderTutorial(SDL_Renderer *renderer) {
 
   // Jump instructions
   yPos += yStep;
-  if (tutorialState < JUMP) {
-    textColor = disabledColor;
-    instructionText = "Press SPACE to jump";
-  } else if (tutorialState == JUMP) {
-    textColor = {255, 255, 0, 255}; // Yellow
-    instructionText = "Press SPACE to jump";
-  } else {
-    textColor = completedColor;
-    instructionText = "Jump  COMPLETED";
-  }
-
+  instructionText = "Press SPACE to jump";
   surface =
       TTF_RenderText_Solid(tutorialFont, instructionText.c_str(), textColor);
   if (surface) {
@@ -315,17 +233,7 @@ void LevelOne::renderTutorial(SDL_Renderer *renderer) {
 
   // Shoot instructions
   yPos += yStep;
-  if (tutorialState < SHOOT) {
-    textColor = disabledColor;
-    instructionText = "Press LEFT MOUSE BUTTON to shoot";
-  } else if (tutorialState == SHOOT) {
-    textColor = {255, 255, 0, 255}; // Yellow
-    instructionText = "Press LEFT MOUSE BUTTON to shoot";
-  } else {
-    textColor = completedColor;
-    instructionText = "Shoot  COMPLETED";
-  }
-
+  instructionText = "Press LEFT MOUSE BUTTON to shoot";
   surface =
       TTF_RenderText_Solid(tutorialFont, instructionText.c_str(), textColor);
   if (surface) {
@@ -339,9 +247,9 @@ void LevelOne::renderTutorial(SDL_Renderer *renderer) {
   }
 
   // Advance to next level message
-  if (readyToAdvance && showAdvanceMessage) {
+  if (showAdvanceMessage) {
     yPos += yStep + 20; // Extra space before the final instruction
-    instructionText = "PRESS G TO ADVANCE TO NEXT LEVEL";
+    instructionText = "PRESS G TO CONTINUE";
 
     surface = TTF_RenderText_Solid(tutorialFont, instructionText.c_str(),
                                    advanceColor);
@@ -361,36 +269,8 @@ void LevelOne::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
   Level::handleEvents(event, renderer);
 
   // Check for G key press to advance level
-  if (event->type == SDL_KEYDOWN && event->key.keysym.sym == SDLK_g &&
-      readyToAdvance) {
+  if (event->type == SDL_KEYDOWN && event->key.keysym.sym == SDLK_g) {
     GameState::setCurrentLevel(2);
-  }
-
-  // Check for CTRL key for slow walking
-  if (tutorialState == WALK_SLOW) {
-    const Uint8 *keyState = SDL_GetKeyboardState(NULL);
-    if (keyState[SDL_SCANCODE_LCTRL] || keyState[SDL_SCANCODE_RCTRL]) {
-      // If CTRL is pressed and player is moving
-      if (abs(player->getVelocityX()) > 0.1f && abs(player->getVelocityX()) < 5.0f) {
-        walkedSlow = true;
-      }
-    }
-  }
-
-  // For mouse movement detection in AIM state
-  if (tutorialState == AIM && event->type == SDL_MOUSEMOTION) {
-    int x = event->motion.x;
-    int y = event->motion.y;
-    
-    // Check if mouse has moved significantly from last position
-    if (abs(x - lastMouseX) > mouseMovementThreshold || 
-        abs(y - lastMouseY) > mouseMovementThreshold) {
-      aimed = true;
-    }
-    
-    // Update last mouse position
-    lastMouseX = x;
-    lastMouseY = y;
   }
 
   // Start music when level is loaded

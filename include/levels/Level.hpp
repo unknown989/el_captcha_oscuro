@@ -27,6 +27,7 @@ public:
   virtual ~Level();
   virtual void render(SDL_Renderer *renderer);
   virtual void handleEvents(SDL_Event *event, SDL_Renderer *renderer);
+  virtual void update();
   void readLevel(const char *path, SDL_Renderer *renderer);
   void loadLevelBackground(const char *path, SDL_Renderer *renderer);
   bool isLevelLoaded() { return isLoaded; }
@@ -34,7 +35,6 @@ public:
     isLoaded = true;
   }
   void unloadLevel() { isLoaded = false; }
-  virtual void update();
   bool isLevelOver() { return this->over; };
 
 protected:

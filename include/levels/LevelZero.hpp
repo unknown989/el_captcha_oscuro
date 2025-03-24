@@ -2,6 +2,7 @@
 #include "GameState.hpp"
 #include "Level.hpp"
 #include "theora/theoraplay.h"
+#include "music.hpp"
 
 
 // Audio queue structure for handling audio packets
@@ -204,7 +205,7 @@ LevelZero::LevelZero(SDL_Renderer *renderer) : Level(renderer) {
   }
 
   // Stop playing music
-  Mix_HaltMusic();
+  MUSIC.stopMusic();
 
   // Wait for first video and audio frames
   while (!video || !audio) {

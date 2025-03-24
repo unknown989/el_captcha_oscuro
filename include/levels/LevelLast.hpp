@@ -6,6 +6,7 @@
 #include <SDL2/SDL_ttf.h>
 #include <cstdint>
 #include <string>
+#include "music.hpp"
 
 
 class LevelLast : public Level {
@@ -58,6 +59,7 @@ LevelLast::LevelLast(SDL_Renderer *renderer) : Level(renderer) {
                  TTF_GetError());
   }
 
+  MUSIC.playMusic("boss");
   SDL_Log("Level one loaded. Number of blocks: %zu", blocks.size());
   player->shouldShot(true);
   enemy->linkToPlayer(player);
