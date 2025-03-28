@@ -3,14 +3,17 @@
 #include "levels/Credits.hpp"
 #include "levels/LevelLamp.hpp"
 #include "levels/LevelLast.hpp"
+#include "levels/LevelHardParkour.hpp"
 #include "mainmenu.hpp"
 #include <GameState.hpp>
 #include <SDL2/SDL.h>
 #include <levels/Level.hpp>
+#include <levels/LevelMaze.hpp>
 #include <levels/LevelOne.hpp>
 #include <levels/LevelTrivia.hpp>
 #include <levels/LevelZero.hpp>
 #include <music.hpp>
+
 
 class Game {
 
@@ -73,7 +76,7 @@ Game::Game() {
   }
   // Music
   MUSIC.loadMusic("menu", "assets/music/Sadness to happiness.wav");
-  MUSIC.loadMusic("boss", "assets/music/La Fiola 2.wav"); 
+  MUSIC.loadMusic("boss", "assets/music/La Fiola 2.wav");
   MUSIC.loadMusic("amicitia", "assets/music/Amicitia.wav");
   MUSIC.loadMusic("enigma", "assets/music/Enigma #2.wav");
   // Menu
@@ -82,7 +85,7 @@ Game::Game() {
       renderer,
       [this] {
         GameState::isMenu = false;
-        GameState::setCurrentLevel(0);
+        GameState::setCurrentLevel(5); // Load hard parkour level
         GameState::isLoading = true;
       },
       NULL, [] { GameState::running = false; });
@@ -130,6 +133,20 @@ void Game::update() {
       GameState::isLoading = false;
       break;
     case 4:
+      if (current_level_obj != nullptr) {
+        delete current_level_obj;
+      }
+      current_level_obj = new LevelMaze(renderer);
+      GameState::isLoading = false;
+      break;
+    case 5:
+      if (current_level_obj != nullptr) {
+        delete current_level_obj;
+      }
+      current_level_obj = new LevelHardParkour(renderer);
+      GameState::isLoading = false;
+      break;
+    case 6:
       if (current_level_obj != nullptr) {
         delete current_level_obj;
       }

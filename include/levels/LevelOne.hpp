@@ -5,7 +5,6 @@
 #include <music.hpp>
 #include <string>
 
-
 class LevelOne : public Level {
 public:
   LevelOne(SDL_Renderer *renderer);
@@ -108,11 +107,11 @@ void LevelOne::renderPlayerStats(SDL_Renderer *renderer) {
     return;
 
   // Create health text in format "currentHealth/maxHealth"
-  std::string healthText = std::to_string(player->getHealth()) + " I " +
-                           std::to_string(player->getMaxHealth());
+  std::string healthText = "HEALTH: " + std::to_string(player->getHealth()) +
+                           " / " + std::to_string(player->getMaxHealth());
 
   // Create bullets text
-  std::string bulletsText = std::to_string(player->getBullets());
+  std::string bulletsText = "BULLETS: " + std::to_string(player->getBullets()) + " / 10";;
 
   // Set text color
   SDL_Color textColor = {255, 255, 255, 255}; // White
@@ -245,6 +244,19 @@ void LevelOne::renderTutorial(SDL_Renderer *renderer) {
     }
     SDL_FreeSurface(surface);
   }
+  yPos += yStep;
+  instructionText = "Press R to reload";
+  surface =
+      TTF_RenderText_Solid(tutorialFont, instructionText.c_str(), textColor);
+  if (surface) {
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (texture) {
+      SDL_Rect rect = {100, yPos, surface->w, surface->h};
+      SDL_RenderCopy(renderer, texture, NULL, &rect);
+      SDL_DestroyTexture(texture);
+    }
+    SDL_FreeSurface(surface);
+  }
 
   // Advance to next level message
   if (showAdvanceMessage) {
@@ -271,13 +283,6 @@ void LevelOne::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
   // Check for G key press to advance level
   if (event->type == SDL_KEYDOWN && event->key.keysym.sym == SDLK_g) {
     GameState::setCurrentLevel(2);
-  }
-
-  // Start music when level is loaded
-  if (isLoaded && !isPlayingMusic) {
-    Mix_VolumeMusic(100);
-    Mix_PlayMusic(level_music, -1);
-    isPlayingMusic = true;
   }
 }
 

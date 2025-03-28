@@ -45,12 +45,6 @@ LevelLast::LevelLast(SDL_Renderer *renderer) : Level(renderer) {
   SDL_Log("Loading level one...");
   readLevel("levels/lvl_last.txt", renderer);
   loadLevelBackground("assets/backgrounds/bosslevel.png", renderer);
-  level_music = Mix_LoadMUS("assets/music/La Fiola 2.wav");
-  if (level_music == NULL) {
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                 "Couldn't load music: %s, music wont be played",
-                 Mix_GetError());
-  }
 
   // Load font for player stats
   statsFont = TTF_OpenFont("assets/fonts/ARCADECLASSIC.ttf", 24);
@@ -398,11 +392,11 @@ void LevelLast::renderPlayerStats(SDL_Renderer *renderer) {
     return;
 
   // Create health text in format "currentHealth/maxHealth"
-  std::string healthText = std::to_string(player->getHealth()) + " I " +
-                           std::to_string(player->getMaxHealth());
+  std::string healthText = "HEALTH: " + std::to_string(player->getHealth()) +
+                           " / " + std::to_string(player->getMaxHealth());
 
   // Create bullets text
-  std::string bulletsText = std::to_string(player->getBullets());
+  std::string bulletsText = "BULLETS: " + std::to_string(player->getBullets()) + " / 10";;
 
   // Set text color
   SDL_Color textColor = {255, 255, 255, 255}; // White
@@ -469,11 +463,7 @@ void LevelLast::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
 
   // Only handle other events if game is not over
   Level::handleEvents(event, renderer);
-  if (isLoaded && !isPlayingMusic) {
-    Mix_VolumeMusic(100);
-    Mix_PlayMusic(level_music, -1);
-    isPlayingMusic = true;
-  }
+
 }
 void LevelLast::renderGameEndScreen(SDL_Renderer *renderer) {
   // Get screen dimensions
@@ -560,9 +550,6 @@ void LevelLast::restartLevel(SDL_Renderer *renderer) {
     SDL_Log("Reset enemy health to %d", enemy->getHealth());
     enemy->linkToPlayer(player);
   }
-
-  // Reset music
-  isPlayingMusic = false;
 
   // Reset other state variables
   timeScale = 1.0f;

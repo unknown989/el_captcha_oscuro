@@ -270,15 +270,4 @@ LevelZero::~LevelZero() {
   if (audioInitialized) {
     SDL_CloseAudio();
   }
-
-  // Drain the audio queue
-  SDL_LockAudio();
-  while (audio_queue) {
-    AudioQueue *next = audio_queue->next;
-    THEORAPLAY_freeAudio(audio_queue->audio);
-    SDL_free((void *)audio_queue);
-    audio_queue = next;
-  }
-  audio_queue_tail = NULL;
-  SDL_UnlockAudio();
 }

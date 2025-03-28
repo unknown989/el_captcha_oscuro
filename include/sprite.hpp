@@ -18,7 +18,7 @@ class Sprite {
     void setIsHidden(bool isHidden) { this->isHidden = isHidden; }
     bool getIsHidden() const { return isHidden; }
 
-  private:
+  protected:
     SDL_Texture* texture;
     SDL_Rect srcRect;
     SDL_Rect destRect;
@@ -35,10 +35,9 @@ Sprite::Sprite() {
 }
 
 Sprite::~Sprite() {
-    if (texture != nullptr) {
-        SDL_DestroyTexture(texture);
-        texture = nullptr;
-    }
+    // Don't destroy the texture here anymore since it's managed by the texture cache
+    // We'll only set it to nullptr
+    texture = nullptr;
 }
 
 bool Sprite::loadFromFile(const char* path, SDL_Renderer* renderer) {

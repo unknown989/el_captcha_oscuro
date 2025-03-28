@@ -2,3 +2,5 @@ D = Dirt
 P = Player
 . = Nothing
 E = enemy
+p = parkour block
+e = exit block

@@ -15,24 +15,29 @@ class Player : public Sprite {
 public:
   Player(SDL_Renderer *renderer, b2World *world, int x, int y);
   ~Player();
-  void handleEvents(SDL_Event *event, SDL_Renderer *renderer);
-  void update();
-  void updatePhysics();
   void render(SDL_Renderer *renderer);
-  bool isOnGround() const;
-  int getWidth() const { return W_SPRITESIZE * 1.4; }
-  void handleMouseMotion(int mouseX, int mouseY);
-  int getHeight() const { return W_SPRITESIZE * 1.4; }
-  int getHealth() const { return health; }
-  int getBullets() const { return bulletsCount; }
-  int getMaxHealth() const { return maxHealth; }
-  int getMaxBullets() const { return maxBullets; } // Added missing method
-  float getVelocityX() const { return body->GetLinearVelocity().x; } // Added missing method
-  float getVelocityY() const { return body->GetLinearVelocity().y; } // Added missing method
-  void shouldShot(bool should) { canShot = should; }
+  void update();
+  void handleEvents(SDL_Event *event, SDL_Renderer *renderer);
+  void handleMouseMotion(int x, int y);
   void fireBullet(SDL_Renderer *renderer);
   void updateBullets();
   void renderBullets(SDL_Renderer *renderer);
+  void updatePhysics();
+  bool isOnGround() const;
+
+  // Debug rendering method
+  void renderDebugSpriteBounds(SDL_Renderer *renderer);
+
+  int getWidth() const { return 50; }
+  int getHeight() const { return 50; }
+  int getHealth() const { return health; }
+  int getBullets() const { return bulletsCount; }
+  int getMaxHealth() const { return maxHealth; }
+  int getMaxBullets() const { return maxBullets; }
+  float getVelocityX() const { return body->GetLinearVelocity().x; }
+  float getVelocityY() const { return body->GetLinearVelocity().y; }
+  b2Body* getBody() const { return body; }  // Getter for the Box2D body
+  void shouldShot(bool should) { canShot = should; }
   void takeDamage(int damage) {
     health -= damage;
     if (health < 0)
@@ -53,9 +58,9 @@ private:
   b2Body *body;
   int runSpeed = 30;
   int walkSpeed = 15;
-  int jumpForce = 40;
+  int jumpForce = 60;  // Increased from 40 to 60 for higher jumps
   int dashForce = 150;         // Force applied during dash
-  float dashVelocity = 500.0f; // Direct velocity for dash instead of force
+  float dashVelocity = 250.0f; // Direct velocity for dash instead of force
   int dashDuration = 100;      // Increased duration for longer dash
   int currentSpeed = runSpeed;
   bool isJumping = false;
@@ -63,12 +68,16 @@ private:
   bool isRunning = true;
   bool isDashing = false;
   bool shouldJump = false;
+  bool spacePressed = false;  // Track if space key is currently pressed
   int walkingDirection = 0;
-  float groundCheckDistance = 1.1f; // Distance to check below player for ground
+  float groundCheckDistance = 1.5f; // Increased from 1.1f for more reliable ground detection
+
+  // Ground forgiveness timer allows jumping shortly after leaving the ground
+  int groundForgivenessTime = 15; // Increased from 8 to 15 frames (about 250ms at 60fps)
+  int groundForgivenessTimer = 0;
 
   // Dash properties
-  int dashCooldown =
-      60; // Frames to wait between dashes (60 frames = 1 second at 60 FPS)
+  int dashCooldown = 60; // Frames to wait between dashes (60 frames = 1 second at 60 FPS)
   int dashTimer = 0;            // Current dash time
   int dashCooldownTimer = 1000; // Current cooldown time
 
@@ -95,6 +104,13 @@ private:
 
   bool canShot = false;
 
+  // Reload properties
+  bool isReloading = false;
+  int reloadRate = 60; // Frames between each bullet reload (30 frames = 0.5
+                       // seconds at 60 FPS)
+  int reloadTimer = 0;
+  int maxBullets = 10;
+
   void loadAnimations(SDL_Renderer *renderer);
   void updateAnimation();
   // Gun properties
@@ -104,14 +120,10 @@ private:
   int gunHeight = 16;
   int gunGap = 20; // Gap between player and gun in pixels
   int mouseX = 0, mouseY = 0;
-  // Reload properties
-  bool isReloading = false;
-  int reloadRate = 60; // Frames between each bullet reload (30 frames = 0.5
-                       // seconds at 60 FPS)
-  int reloadTimer = 0;
-  int maxBullets = 10;
+
 };
 
+const float PPM = 32.0f; // Match the PPM value used elsewhere
 void Player::fireBullet(SDL_Renderer *renderer) {
   if (fireTimer <= 0 && bulletsCount > 0) {
     // Calculate bullet spawn position (at gun tip)
@@ -170,20 +182,45 @@ void Player::renderBullets(SDL_Renderer *renderer) {
   }
 }
 
+// In the Player constructor, update the collision shape setup
+
 Player::Player(SDL_Renderer *renderer, b2World *world, int x, int y) {
+  const float PPM = 32.0f; // Match Level.hpp's pixels per meter
+
   state = IDLE;
   previousState = IDLE;
+  spacePressed = false;
   b2BodyDef bodyDef;
   bodyDef.type = b2_dynamicBody;
-  bodyDef.position.Set(x, y);
+
+  // Convert pixel coordinates to Box2D meters
+  bodyDef.position.Set((x + W_SPRITESIZE / 2) / PPM,
+                       (y + W_SPRITESIZE / 2) / PPM);
+
   bodyDef.fixedRotation = true;
   body = world->CreateBody(&bodyDef);
+
+  // Match hitbox size exactly to the player's visual size
+  float playerWidth = getWidth();   // Use the actual width from getWidth()
+  float playerHeight = getHeight(); // Use the actual height from getHeight()
+
+  // Create a box shape for the player's body - make collision box smaller
+  float hitboxScale = 0.7f; // Reduce collision box to 70% of visual size
   b2PolygonShape shape;
-  shape.SetAsBox(W_SPRITESIZE / 2, W_SPRITESIZE / 2);
+  shape.SetAsBox((playerWidth / 2 * hitboxScale) / PPM, (playerHeight / 2 * hitboxScale) / PPM);
+
+  // Create a fixture for the player's body
   b2FixtureDef fixtureDef;
   fixtureDef.shape = &shape;
   fixtureDef.density = 1.0f;
-  fixtureDef.friction = 0.3f;
+  fixtureDef.friction = 0.001f; // Reduced from 0.01f to match icy block friction (0.001f)
+  
+  // Add higher wall friction to prevent climbing
+  fixtureDef.restitution = 0.05f; // Small bounce to match blocks
+
+  // Add user data to identify player fixture
+  fixtureDef.userData.pointer = reinterpret_cast<uintptr_t>(this);
+
   body->CreateFixture(&fixtureDef);
 
   // Initialize animation properties
@@ -301,21 +338,6 @@ void Player::loadAnimations(SDL_Renderer *renderer) {
   }
   animations[FALLING] = fallAnim;
 
-  // Load dashing animation
-  Animation dashAnim;
-  dashAnim.frameCount = 2;   // Assuming 2 frames for dashing
-  dashAnim.frameDelay = 100; // 100ms between frames
-  for (int i = 0; i < dashAnim.frameCount; i++) {
-    char path[100];
-    sprintf(path, "assets/player/dash/dash_%d.png", i);
-    SDL_Texture *texture = nullptr;
-    SDL_Surface *surface = Texture::loadFromFile(path, renderer, texture);
-    if (surface) {
-      dashAnim.frames.push_back(texture);
-      SDL_FreeSurface(surface);
-    }
-  }
-  animations[DASHING] = dashAnim;
 }
 
 void Player::updateAnimation() {
@@ -348,11 +370,44 @@ void Player::updateAnimation() {
 }
 
 bool Player::isOnGround() const {
+  // If we're within the forgiveness time, consider the player on ground
+  if (groundForgivenessTimer > 0) {
+    return true;
+  }
+
+  const float PPM = 32.0f; // Match the PPM value used elsewhere
+  const float hitboxScale = 0.7f; // Match the scale used in constructor
+
   // Create a small ray cast downward from player's position
   b2Vec2 start = body->GetPosition();
+
+  // Calculate the bottom of the player's collision box
+  float playerHeight = getHeight() * hitboxScale;
+  float playerWidth = getWidth() * hitboxScale;
+
   // Cast from the bottom of the player's collision box
-  start.y += (W_SPRITESIZE / 2) - 0.1f;
-  b2Vec2 end = start + b2Vec2(0, groundCheckDistance);
+  start.y += (playerHeight / 2) / PPM;
+
+  // Increase ray length for more reliable ground detection
+  float rayLength = 0.5f; // Increased from 0.25f to 0.5f for better detection
+  b2Vec2 end = start + b2Vec2(0, rayLength);
+  
+  // Calculate width for side checks - use wider spacing for gaps
+  float sideOffset1 = (playerWidth / 2) / PPM * 0.7f; // Reduce side check width to prevent wall climbing
+  float sideOffset2 = (playerWidth / 4) / PPM * 0.7f; // Reduce side check width
+  
+  // Add more ray casts to cover more ground points
+  b2Vec2 startLeft1 = start - b2Vec2(sideOffset1, 0);
+  b2Vec2 endLeft1 = startLeft1 + b2Vec2(0, rayLength);
+  
+  b2Vec2 startLeft2 = start - b2Vec2(sideOffset2, 0);
+  b2Vec2 endLeft2 = startLeft2 + b2Vec2(0, rayLength);
+  
+  b2Vec2 startRight1 = start + b2Vec2(sideOffset1, 0);
+  b2Vec2 endRight1 = startRight1 + b2Vec2(0, rayLength);
+  
+  b2Vec2 startRight2 = start + b2Vec2(sideOffset2, 0);
+  b2Vec2 endRight2 = startRight2 + b2Vec2(0, rayLength);
 
   // Use Box2D's ray cast to check for ground
   class GroundRayCastCallback : public b2RayCastCallback {
@@ -366,16 +421,56 @@ bool Player::isOnGround() const {
       if (fixture->GetBody() == playerBody) {
         return -1; // Continue checking
       }
-      hit = true;
-      return 0; // Stop checking
+      
+      // Strict check: Only count hits from directly below (normal pointing up)
+      // This prevents detecting walls as ground
+      if (normal.y < -0.85f) { // Almost vertical normal (was -0.5f)
+        hit = true;
+        return 0; // Stop checking
+      }
+      return -1; // Continue checking
     }
   };
 
+  // Check center ray first
   GroundRayCastCallback callback;
-  callback.playerBody = body; // Store player body to skip self-collision
+  callback.playerBody = body;
   body->GetWorld()->RayCast(&callback, start, end);
-
-  return callback.hit;
+  
+  if (callback.hit) {
+    return true;
+  }
+  
+  // If center ray didn't hit, try all side rays
+  GroundRayCastCallback callbackLeft1;
+  callbackLeft1.playerBody = body;
+  body->GetWorld()->RayCast(&callbackLeft1, startLeft1, endLeft1);
+  
+  if (callbackLeft1.hit) {
+    return true;
+  }
+  
+  GroundRayCastCallback callbackLeft2;
+  callbackLeft2.playerBody = body;
+  body->GetWorld()->RayCast(&callbackLeft2, startLeft2, endLeft2);
+  
+  if (callbackLeft2.hit) {
+    return true;
+  }
+  
+  GroundRayCastCallback callbackRight1;
+  callbackRight1.playerBody = body;
+  body->GetWorld()->RayCast(&callbackRight1, startRight1, endRight1);
+  
+  if (callbackRight1.hit) {
+    return true;
+  }
+  
+  GroundRayCastCallback callbackRight2;
+  callbackRight2.playerBody = body;
+  body->GetWorld()->RayCast(&callbackRight2, startRight2, endRight2);
+  
+  return callbackRight2.hit;
 }
 
 void Player::updatePhysics() {
@@ -385,10 +480,10 @@ void Player::updatePhysics() {
   if (isDashing) {
     if (dashTimer > 0) {
       // Apply dash velocity directly instead of force
-      int dashDirection = facingRight ? 1 : -1;
+      int dashDirection = walkingDirection != 0 ? walkingDirection : (facingRight ? 1 : -1);
 
-      // Set a fixed high velocity instead of applying force
-      body->SetLinearVelocity(b2Vec2(dashDirection * dashVelocity, 0));
+      // Set a fixed high velocity instead of applying force - convert to m/s
+      body->SetLinearVelocity(b2Vec2(dashDirection * dashVelocity / PPM, 0));
 
       // Disable gravity during dash for more consistent movement
       body->SetGravityScale(0.0f);
@@ -415,21 +510,147 @@ void Player::updatePhysics() {
   } else {
     // Normal movement when not dashing
 
+    // Detect wall climbing attempt - when moving horizontally against a wall but not on ground
+    if (!isOnGround() && walkingDirection != 0) {
+      // Check if there's a wall in the direction of movement
+      b2Vec2 start = body->GetPosition();
+      float playerWidth = getWidth() * 0.7f; // Same hitbox scale as elsewhere
+      float horizontalCheckDistance = 0.2f; // Short distance to check for walls
+      
+      // Position ray at center of player, in direction of movement
+      b2Vec2 end = start + b2Vec2(walkingDirection * horizontalCheckDistance, 0);
+      
+      // Check for collision with wall
+      class WallRayCastCallback : public b2RayCastCallback {
+      public:
+        bool hit = false;
+        b2Body* playerBody = nullptr;
+        
+        float ReportFixture(b2Fixture* fixture, const b2Vec2& point, 
+                          const b2Vec2& normal, float fraction) override {
+          // Skip player's own fixture
+          if (fixture->GetBody() == playerBody) {
+            return -1;
+          }
+          hit = true;
+          return 0;
+        }
+      };
+      
+      WallRayCastCallback wallCallback;
+      wallCallback.playerBody = body;
+      body->GetWorld()->RayCast(&wallCallback, start, end);
+      
+      // If we're trying to move into a wall while in the air
+      if (wallCallback.hit) {
+        // Apply a slight push away from wall to prevent climbing
+        body->ApplyLinearImpulse(
+          b2Vec2(-walkingDirection * 0.05f, 0.05f), // Push away from wall with slight downward force
+          body->GetWorldCenter(), 
+          true
+        );
+      }
+    }
+    
+    // Check for ceiling collisions - if the player is moving upward
+    if (vel.y < 0) {
+      // Cast a ray upward to check for ceiling
+      b2Vec2 start = body->GetPosition();
+      float playerHeight = getHeight() * 0.7f; // Same hitbox scale as elsewhere
+      
+      // Cast from top of player's head
+      start.y -= (playerHeight / 2) / PPM;
+      
+      float ceilingCheckDistance = 0.2f;
+      b2Vec2 end = start - b2Vec2(0, ceilingCheckDistance);
+      
+      class CeilingRayCastCallback : public b2RayCastCallback {
+      public:
+        bool hit = false;
+        b2Body* playerBody = nullptr;
+        
+        float ReportFixture(b2Fixture* fixture, const b2Vec2& point, 
+                          const b2Vec2& normal, float fraction) override {
+          // Skip player's own fixture
+          if (fixture->GetBody() == playerBody) {
+            return -1;
+          }
+          hit = true;
+          return 0;
+        }
+      };
+      
+      CeilingRayCastCallback ceilingCallback;
+      ceilingCallback.playerBody = body;
+      body->GetWorld()->RayCast(&ceilingCallback, start, end);
+      
+      // If we hit a ceiling while moving upward
+      if (ceilingCallback.hit) {
+        // Stop upward velocity and apply a small downward velocity
+        if (vel.y < 0) {
+          // Calculate a bounce-back velocity based on current velocity
+          float bounceVelocity = vel.y * -0.2f; // 20% bounce in the opposite direction
+          // Ensure minimum bounce
+          if (bounceVelocity < 0.5f) {
+            bounceVelocity = 0.5f;
+          }
+          
+          body->SetLinearVelocity(b2Vec2(vel.x, bounceVelocity)); // Apply downward velocity with bounce
+          isJumping = false; // Stop the jump
+          shouldJump = false; // Prevent immediate re-jump
+        }
+      }
+    }
+
     // Set current speed based on walk/run state, but only when on ground
     if (isOnGround()) {
       currentSpeed = isRunning ? runSpeed : walkSpeed;
+    } else {
+      // Use a slightly higher speed in air for better control
+      currentSpeed = isRunning ? (runSpeed * 0.9f) : (walkSpeed * 0.9f);
     }
 
-    // Horizontal movement with smoother acceleration
-    float targetVelocityX = walkingDirection * currentSpeed;
-    float velocityChange = targetVelocityX - vel.x;
-    float impulseX = body->GetMass() * velocityChange;
-    body->ApplyLinearImpulse(b2Vec2(impulseX, 0), body->GetWorldCenter(), true);
+    // Horizontal movement with smoother acceleration - convert to m/s
+    float targetVelocityX = walkingDirection * currentSpeed / PPM;
+    
+    // When we want to stop (walkingDirection == 0), adjust deceleration to simulate icy surfaces
+    if (walkingDirection == 0 && isOnGround()) {
+      // Apply a very small deceleration on icy surfaces to simulate sliding
+      // Just dampen current velocity slightly instead of zeroing it out
+      float iceDeceleration = 0.02f; // Very small deceleration for ice
+      float newVelX = vel.x * (1.0f - iceDeceleration);
+      
+      // Only update if speed is changing significantly
+      if (abs(newVelX - vel.x) > 0.001f) {
+        body->SetLinearVelocity(b2Vec2(newVelX, vel.y));
+      }
+    }
+    // For active movement, apply normal impulse but with reduced deceleration
+    else {
+      // Add a velocity boost to prevent getting stuck at very low speeds
+      if (abs(vel.x) < 0.15f && walkingDirection != 0 && isOnGround()) {
+        // Give a stronger boost to overcome edge-catching
+        float boostFactor = 0.5f;
+        // Only modify the x component, preserving y velocity
+        body->SetLinearVelocity(b2Vec2(boostFactor * walkingDirection, vel.y));
+      }
+      
+      float velocityChange = targetVelocityX - vel.x;
+      float impulseX = body->GetMass() * velocityChange;
+      body->ApplyLinearImpulse(b2Vec2(impulseX, 0), body->GetWorldCenter(), true);
+    }
 
     // Jumping - only if on ground
     if (isJumping && isOnGround()) {
-      // Apply a strong upward impulse instead of setting velocity directly
-      float jumpImpulse = body->GetMass() * jumpForce;
+      // Apply a strong upward impulse instead of setting velocity directly -
+      // convert to m/s
+      float jumpImpulse = body->GetMass() * jumpForce / PPM;
+      
+      // Cancel any downward velocity first for more consistent jumps
+      if (vel.y > 0) {
+        body->SetLinearVelocity(b2Vec2(vel.x, 0));
+      }
+      
       body->ApplyLinearImpulse(b2Vec2(0, -jumpImpulse), body->GetWorldCenter(),
                                true);
       state = JUMPING;
@@ -444,8 +665,17 @@ void Player::updatePhysics() {
         state = FALLING;
       }
     } else if (abs(vel.x) > 0.5f) {
-      // Set state to SPRINT if running, WALKING if walking
-      state = (isRunning && isWalking) ? SPRINT : WALKING;
+      // Determine if player is walking intentionally or sliding on ice
+      if (abs(walkingDirection) > 0) {
+        // Normal walking/running when actively moving
+        state = (isRunning && isWalking) ? SPRINT : WALKING;
+      } else if (abs(vel.x) > 0.8f) {
+        // Fast sliding shows sprint animation
+        state = SPRINT;
+      } else {
+        // Slow sliding shows walking animation
+        state = WALKING;
+      }
     } else {
       state = IDLE;
     }
@@ -458,10 +688,104 @@ void Player::updatePhysics() {
 }
 
 void Player::update() {
+  const float PPM = 32.0f; // Match the PPM value used elsewhere
+  
   // Store previous velocity for speed bug detection
   b2Vec2 prevVel = body->GetLinearVelocity();
+  
+  // Anti-sticking code: detect when player is stuck
+  static int stuckCounter = 0;
+  static b2Vec2 lastPosition = body->GetPosition();
+  b2Vec2 position = body->GetPosition();
+  
+  // If player has movement input but position hasn't changed much AND is on ground
+  // For icy surfaces, make the check a bit more lenient to avoid false positives
+  if (walkingDirection != 0 && 
+      abs(position.x - lastPosition.x) < 0.008f && // More lenient for icy surfaces
+      abs(prevVel.x) < 0.25f &&
+      isOnGround()) { 
+    stuckCounter++;
+    
+    // If stuck for multiple frames, apply unsticking force
+    if (stuckCounter > 3) { // Slightly more frames to confirm actual sticking vs. ice physics
+      // Apply stronger horizontal impulse in the direction of input
+      float unstickImpulse = body->GetMass() * 1.4f; // Slightly reduced for icy surfaces
+      
+      // Apply a pure horizontal force with no vertical component
+      body->ApplyLinearImpulse(
+        b2Vec2(walkingDirection * unstickImpulse, 0.0f),
+        body->GetWorldCenter(), 
+        true
+      );
+      
+      // Get current velocity to preserve vertical component
+      b2Vec2 currentVel = body->GetLinearVelocity();
+      
+      // Reset velocity to ensure we don't have any opposing forces
+      // Strictly maintain the current Y velocity to avoid any Y-axis changes
+      body->SetLinearVelocity(b2Vec2(walkingDirection * 0.6f, currentVel.y));
+      
+      stuckCounter = 0;
+      
+      // Log detection of sticking for debugging
+      SDL_Log("Unsticking player on ice at position (%f, %f) with velocity (%f, %f)",
+              position.x, position.y, currentVel.x, currentVel.y);
+    }
+  } else {
+    stuckCounter = 0;
+  }
+  
+  // Save current position for next frame
+  lastPosition = position;
+  
+  // Check if we're actually on the ground (without using the forgiveness timer)
+  bool physicallyOnGround = false;
+  
+  {
+    // Simple raycast to check ground - using existing implementation
+    const float hitboxScale = 0.7f;
+    b2Vec2 start = body->GetPosition();
+    float playerHeight = getHeight() * hitboxScale;
+    start.y += (playerHeight / 2) / PPM;
+    float rayLength = 0.5f; // Increased ray length for better detection
+    b2Vec2 end = start + b2Vec2(0, rayLength);
+    
+    // Use a local ray cast callback for ground detection
+    class GroundCallback : public b2RayCastCallback {
+    public:
+      bool hit = false;
+      b2Body* playerBody = nullptr;
+      
+      float ReportFixture(b2Fixture* fixture, const b2Vec2& point, 
+                         const b2Vec2& normal, float fraction) override {
+        if (fixture->GetBody() == playerBody) {
+          return -1; // Skip player's own fixture
+        }
+        if (normal.y < -0.85f) { // Strict ground check to prevent wall climbing
+          hit = true;
+          return 0;
+        }
+        return -1;
+      }
+    };
+    
+    GroundCallback callback;
+    callback.playerBody = body;
+    body->GetWorld()->RayCast(&callback, start, end);
+    
+    physicallyOnGround = callback.hit;
+  }
+  
+  // Handle ground forgiveness timer
+  if (physicallyOnGround) {
+    // Reset forgiveness timer when on ground
+    groundForgivenessTimer = groundForgivenessTime;
+  } else if (groundForgivenessTimer > 0) {
+    // Decrement timer when not on ground
+    groundForgivenessTimer--;
+  }
 
-  // Reset jump flag if on ground
+  // Reset jump flag if on ground (which can include forgiveness time)
   if (isOnGround()) {
     shouldJump = true;
 
@@ -471,13 +795,13 @@ void Player::update() {
       float targetVelocityX =
           walkingDirection * (isRunning ? runSpeed : walkSpeed);
       body->SetLinearVelocity(
-          b2Vec2(targetVelocityX, body->GetLinearVelocity().y));
+          b2Vec2(targetVelocityX / PPM, body->GetLinearVelocity().y));
     }
   }
 
   // Screen wrapping - teleport player to opposite side when leaving screen
   // boundaries
-  b2Vec2 position = body->GetPosition();
+  position = body->GetPosition();
   bool teleported = false;
 
   // Get screen dimensions
@@ -485,21 +809,24 @@ void Player::update() {
   SDL_GetRendererOutputSize(SDL_GetRenderer(SDL_GetWindowFromID(1)),
                             &screenWidth, &screenHeight);
 
-  // Check horizontal boundaries
-  if (position.x < -W_SPRITESIZE) {
-    position.x = screenWidth + W_SPRITESIZE / 2;
+  // Check horizontal boundaries - convert Box2D meters to pixels for comparison
+  float playerX = position.x * PPM;
+  float playerY = position.y * PPM;
+
+  if (playerX < -W_SPRITESIZE) {
+    position.x = (screenWidth + W_SPRITESIZE / 2) / PPM;
     teleported = true;
-  } else if (position.x > screenWidth + W_SPRITESIZE) {
-    position.x = -W_SPRITESIZE / 2;
+  } else if (playerX > screenWidth + W_SPRITESIZE) {
+    position.x = (-W_SPRITESIZE / 2) / PPM;
     teleported = true;
   }
 
   // Check vertical boundaries
-  if (position.y < -W_SPRITESIZE) {
-    position.y = screenHeight + W_SPRITESIZE / 2;
+  if (playerY < -W_SPRITESIZE) {
+    position.y = (screenHeight + W_SPRITESIZE / 2) / PPM;
     teleported = true;
-  } else if (position.y > screenHeight + W_SPRITESIZE) {
-    position.y = -W_SPRITESIZE / 2;
+  } else if (playerY > screenHeight + W_SPRITESIZE) {
+    position.y = (-W_SPRITESIZE / 2) / PPM;
     teleported = true;
   }
 
@@ -508,7 +835,16 @@ void Player::update() {
     body->SetTransform(position, body->GetAngle());
   }
 
-  setPosition((int)body->GetPosition().x, (int)body->GetPosition().y);
+  // Calculate the offset to center the sprite on the physics body
+  float playerWidth = W_SPRITESIZE * 0.8f;  // Same as in constructor
+  float playerHeight = W_SPRITESIZE * 0.9f; // Same as in constructor
+
+  // Convert Box2D position (meters) to pixel position for rendering
+  // Adjust position to center the sprite on the physics body
+  int renderX = (int)(position.x * PPM - getWidth() / 2);
+  int renderY = (int)(position.y * PPM - getHeight() / 2);
+
+  setPosition(renderX, renderY);
 
   // Update animation
   updateAnimation();
@@ -611,10 +947,14 @@ void Player::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
   if (event->type == SDL_KEYDOWN) {
     switch (event->key.keysym.sym) {
     case SDLK_SPACE:
-      if (shouldJump && isOnGround()) {
+      // Only trigger jump if space wasn't already pressed
+      if (!spacePressed && shouldJump && (isOnGround() || groundForgivenessTimer > 0)) {
         isJumping = true;
         shouldJump = false;
+        // Reset forgiveness timer when jumping
+        groundForgivenessTimer = 0;
       }
+      spacePressed = true;
       break;
     case SDLK_a:
       walkingDirection = -1;
@@ -644,6 +984,21 @@ void Player::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
       if (dashCooldownTimer == 0 && !isDashing) {
         isDashing = true;
         dashTimer = dashDuration;
+        // Store previous state and update current state immediately
+        previousState = state;
+        state = DASHING;
+        
+        // Get current velocity and apply dash while preserving vertical momentum
+        b2Vec2 currentVel = body->GetLinearVelocity();
+        
+        // Use walkingDirection for dash direction, fall back to facingRight if no movement input
+        int dashDirection = walkingDirection != 0 ? walkingDirection : (facingRight ? 1 : -1);
+        
+        // Set horizontal velocity for dash while preserving vertical velocity
+        body->SetLinearVelocity(b2Vec2(dashDirection * dashVelocity / PPM, currentVel.y));
+        
+        // Disable gravity immediately for consistent dash behavior
+        body->SetGravityScale(0.0f);
       }
       break;
     default:
@@ -652,6 +1007,9 @@ void Player::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
   }
   if (event->type == SDL_KEYUP) {
     switch (event->key.keysym.sym) {
+    case SDLK_SPACE:
+      spacePressed = false;
+      break;
     case SDLK_a:
       if (walkingDirection == -1) {
         walkingDirection = 0;
@@ -682,4 +1040,75 @@ void Player::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
       fireBullet(renderer);
     }
   }
+}
+
+// Add this to the Player class declaration (public section)
+void renderDebugSpriteBounds(SDL_Renderer *renderer);
+
+// Add this implementation after the render method
+
+void Player::renderDebugSpriteBounds(SDL_Renderer *renderer) {
+  const float PPM = 32.0f; // Match the PPM value used elsewhere
+  
+  // Set debug draw color (semi-transparent green for sprite bounds)
+  SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+  SDL_SetRenderDrawColor(renderer, 0, 255, 0, 128);
+
+  // Draw rectangle around the sprite's visual dimensions
+  SDL_Rect spriteRect = {getX(), getY(), getWidth(), getHeight()};
+
+  // Draw outline
+  SDL_RenderDrawRect(renderer, &spriteRect);
+
+  // Draw diagonal lines to make the box more visible
+  SDL_RenderDrawLine(renderer, spriteRect.x, spriteRect.y,
+                     spriteRect.x + spriteRect.w, spriteRect.y + spriteRect.h);
+  SDL_RenderDrawLine(renderer, spriteRect.x + spriteRect.w, spriteRect.y,
+                     spriteRect.x, spriteRect.y + spriteRect.h);
+                     
+  // Also draw the collision hitbox (blue)
+  SDL_SetRenderDrawColor(renderer, 0, 0, 255, 128);
+  float hitboxScale = 0.7f; // Same scale as in constructor
+  
+  // Calculate collision box dimensions
+  int collisionWidth = getWidth() * hitboxScale;
+  int collisionHeight = getHeight() * hitboxScale;
+  int collisionX = getX() + (getWidth() - collisionWidth) / 2;
+  int collisionY = getY() + (getHeight() - collisionHeight) / 2;
+  
+  SDL_Rect collisionRect = {collisionX, collisionY, collisionWidth, collisionHeight};
+  SDL_RenderDrawRect(renderer, &collisionRect);
+  
+  // Draw ground check rays (yellow)
+  SDL_SetRenderDrawColor(renderer, 255, 255, 0, 200);
+  
+  // Calculate ray positions based on player's position and hitbox
+  b2Vec2 position = body->GetPosition();
+  float playerHeight = getHeight() * hitboxScale;
+  float playerWidth = getWidth() * hitboxScale;
+  
+  // Center ray - Start at bottom center of collision box
+  int rayCenterStartX = (int)(position.x * PPM);
+  int rayCenterStartY = (int)((position.y + playerHeight/2/PPM) * PPM);
+  int rayEndY = rayCenterStartY + (int)(0.25f * PPM); // 25cm ray (match updated length)
+  
+  // Side rays at full and quarter width
+  float sideOffset1 = playerWidth/2;
+  float sideOffset2 = playerWidth/4;
+  
+  // Calculate ray start positions
+  int rayLeft1StartX = rayCenterStartX - (int)sideOffset1;
+  int rayLeft2StartX = rayCenterStartX - (int)sideOffset2;
+  int rayRight1StartX = rayCenterStartX + (int)sideOffset1;
+  int rayRight2StartX = rayCenterStartX + (int)sideOffset2;
+  
+  // Draw the rays
+  SDL_RenderDrawLine(renderer, rayCenterStartX, rayCenterStartY, rayCenterStartX, rayEndY);
+  SDL_RenderDrawLine(renderer, rayLeft1StartX, rayCenterStartY, rayLeft1StartX, rayEndY);
+  SDL_RenderDrawLine(renderer, rayLeft2StartX, rayCenterStartY, rayLeft2StartX, rayEndY);
+  SDL_RenderDrawLine(renderer, rayRight1StartX, rayCenterStartY, rayRight1StartX, rayEndY);
+  SDL_RenderDrawLine(renderer, rayRight2StartX, rayCenterStartY, rayRight2StartX, rayEndY);
+
+  // Reset blend mode
+  SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
 }
