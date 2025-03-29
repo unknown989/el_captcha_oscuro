@@ -1,17 +1,28 @@
 #pragma once
 #include "CONSTANTS.hpp"
-#include "SDL2/SDL_render.h"
 #include "bullet.hpp"
 #include "sprite.hpp"
 #include <SDL2/SDL.h>
 #include <box2d/box2d.h>
+#include <soundmanager.hpp>
+#include <GameState.hpp>
 #include <list>
 #include <map>
 #include <vector>
 
-enum PlayerState { IDLE, WALKING, JUMPING, FALLING, SPRINT, DASHING };
 
-class Player : public Sprite {
+enum PlayerState
+{
+  IDLE,
+  WALKING,
+  JUMPING,
+  FALLING,
+  SPRINT,
+  DASHING
+};
+
+class Player : public Sprite
+{
 public:
   Player(SDL_Renderer *renderer, b2World *world, int x, int y);
   ~Player();
@@ -36,21 +47,24 @@ public:
   int getMaxBullets() const { return maxBullets; }
   float getVelocityX() const { return body->GetLinearVelocity().x; }
   float getVelocityY() const { return body->GetLinearVelocity().y; }
-  b2Body* getBody() const { return body; }  // Getter for the Box2D body
+  b2Body *getBody() const { return body; } // Getter for the Box2D body
   void shouldShot(bool should) { canShot = should; }
-  void takeDamage(int damage) {
+  void takeDamage(int damage)
+  {
     health -= damage;
     if (health < 0)
       health = 0;
   }
-  const std::list<std::unique_ptr<Bullet>> &getBulletsObj() const {
+  const std::list<std::unique_ptr<Bullet>> &getBulletsObj() const
+  {
     return bullets;
   }
-  void removeBullet(Bullet *bullet) {
-    bullets.remove_if([bullet](const std::unique_ptr<Bullet> &b) {
-      return b.get() == bullet;
-    });
+  void removeBullet(Bullet *bullet)
+  {
+    bullets.remove_if([bullet](const std::unique_ptr<Bullet> &b)
+                      { return b.get() == bullet; });
   }
+
 
 private:
   PlayerState state;
@@ -58,7 +72,7 @@ private:
   b2Body *body;
   int runSpeed = 30;
   int walkSpeed = 15;
-  int jumpForce = 60;  // Increased from 40 to 60 for higher jumps
+  int jumpForce = 60;          // Increased from 40 to 60 for higher jumps
   int dashForce = 150;         // Force applied during dash
   float dashVelocity = 250.0f; // Direct velocity for dash instead of force
   int dashDuration = 100;      // Increased duration for longer dash
@@ -68,7 +82,7 @@ private:
   bool isRunning = true;
   bool isDashing = false;
   bool shouldJump = false;
-  bool spacePressed = false;  // Track if space key is currently pressed
+  bool spacePressed = false; // Track if space key is currently pressed
   int walkingDirection = 0;
   float groundCheckDistance = 1.5f; // Increased from 1.1f for more reliable ground detection
 
@@ -77,13 +91,14 @@ private:
   int groundForgivenessTimer = 0;
 
   // Dash properties
-  int dashCooldown = 60; // Frames to wait between dashes (60 frames = 1 second at 60 FPS)
+  int dashCooldown = 60;        // Frames to wait between dashes (60 frames = 1 second at 60 FPS)
   int dashTimer = 0;            // Current dash time
   int dashCooldownTimer = 1000; // Current cooldown time
   bool isFirstDash = true;
 
   // Animation properties
-  struct Animation {
+  struct Animation
+  {
     std::vector<SDL_Texture *> frames;
     int frameCount;
     int frameDelay; // Delay between frames in milliseconds
@@ -121,12 +136,13 @@ private:
   int gunHeight = 16;
   int gunGap = 20; // Gap between player and gun in pixels
   int mouseX = 0, mouseY = 0;
-
 };
 
 const float PPM = 32.0f; // Match the PPM value used elsewhere
-void Player::fireBullet(SDL_Renderer *renderer) {
-  if (fireTimer <= 0 && bulletsCount > 0) {
+void Player::fireBullet(SDL_Renderer *renderer)
+{
+  if (fireTimer <= 0 && bulletsCount > 0)
+  {
     // Calculate bullet spawn position (at gun tip)
     int playerCenterX = getX() + getWidth() / 2;
     int playerCenterY = getY() + getHeight() / 2;
@@ -153,9 +169,11 @@ void Player::fireBullet(SDL_Renderer *renderer) {
   }
 }
 
-void Player::updateBullets() {
+void Player::updateBullets()
+{
   // Update fire timer
-  if (fireTimer > 0) {
+  if (fireTimer > 0)
+  {
     fireTimer--;
   }
 
@@ -166,26 +184,33 @@ void Player::updateBullets() {
 
   // Update bullets and remove those that are out of bounds
   auto it = bullets.begin();
-  while (it != bullets.end()) {
+  while (it != bullets.end())
+  {
     (*it)->update();
 
-    if ((*it)->isOutOfBounds(screenWidth, screenHeight)) {
+    if ((*it)->isOutOfBounds(screenWidth, screenHeight))
+    {
       it = bullets.erase(it);
-    } else {
+    }
+    else
+    {
       ++it;
     }
   }
 }
 
-void Player::renderBullets(SDL_Renderer *renderer) {
-  for (auto &bullet : bullets) {
+void Player::renderBullets(SDL_Renderer *renderer)
+{
+  for (auto &bullet : bullets)
+  {
     bullet->render(renderer);
   }
 }
 
 // In the Player constructor, update the collision shape setup
 
-Player::Player(SDL_Renderer *renderer, b2World *world, int x, int y) {
+Player::Player(SDL_Renderer *renderer, b2World *world, int x, int y)
+{
   const float PPM = 32.0f; // Match Level.hpp's pixels per meter
 
   state = IDLE;
@@ -215,7 +240,7 @@ Player::Player(SDL_Renderer *renderer, b2World *world, int x, int y) {
   fixtureDef.shape = &shape;
   fixtureDef.density = 1.0f;
   fixtureDef.friction = 0.001f; // Reduced from 0.01f to match icy block friction (0.001f)
-  
+
   // Add higher wall friction to prevent climbing
   fixtureDef.restitution = 0.05f; // Small bounce to match blocks
 
@@ -232,7 +257,8 @@ Player::Player(SDL_Renderer *renderer, b2World *world, int x, int y) {
   // Load gun texture
   SDL_Surface *gunSurface =
       Texture::loadFromFile("assets/gun/player.png", renderer, gunTexture);
-  if (gunSurface) {
+  if (gunSurface)
+  {
     gunWidth = W_SPRITESIZE / 10;
     gunHeight = W_SPRITESIZE / 10;
     SDL_FreeSurface(gunSurface);
@@ -242,33 +268,41 @@ Player::Player(SDL_Renderer *renderer, b2World *world, int x, int y) {
   loadAnimations(renderer);
 }
 
-Player::~Player() {
+Player::~Player()
+{
   // Clean up animation textures
-  for (auto &animPair : animations) {
-    for (auto &texture : animPair.second.frames) {
-      if (texture) {
+  for (auto &animPair : animations)
+  {
+    for (auto &texture : animPair.second.frames)
+    {
+      if (texture)
+      {
         SDL_DestroyTexture(texture);
       }
     }
   }
 
   // Clean up gun texture
-  if (gunTexture) {
+  if (gunTexture)
+  {
     SDL_DestroyTexture(gunTexture);
   }
 }
 
-void Player::loadAnimations(SDL_Renderer *renderer) {
+void Player::loadAnimations(SDL_Renderer *renderer)
+{
   // Load idle animation
   Animation idleAnim;
   idleAnim.frameCount = 4;   // Assuming 4 frames for idle
   idleAnim.frameDelay = 150; // 150ms between frames
-  for (int i = 0; i < idleAnim.frameCount; i++) {
+  for (int i = 0; i < idleAnim.frameCount; i++)
+  {
     char path[100];
     sprintf(path, "assets/player/idle/idle_%d.png", i);
     SDL_Texture *texture = nullptr;
     SDL_Surface *surface = Texture::loadFromFile(path, renderer, texture);
-    if (surface) {
+    if (surface)
+    {
       idleAnim.frames.push_back(texture);
       SDL_FreeSurface(surface);
     }
@@ -279,12 +313,14 @@ void Player::loadAnimations(SDL_Renderer *renderer) {
   Animation walkAnim;
   walkAnim.frameCount = 6;   // Assuming 6 frames for walking
   walkAnim.frameDelay = 100; // 100ms between frames
-  for (int i = 0; i < walkAnim.frameCount; i++) {
+  for (int i = 0; i < walkAnim.frameCount; i++)
+  {
     char path[100];
     sprintf(path, "assets/player/walk/walk_%d.png", i);
     SDL_Texture *texture = nullptr;
     SDL_Surface *surface = Texture::loadFromFile(path, renderer, texture);
-    if (surface) {
+    if (surface)
+    {
       walkAnim.frames.push_back(texture);
       SDL_FreeSurface(surface);
     }
@@ -295,12 +331,14 @@ void Player::loadAnimations(SDL_Renderer *renderer) {
   Animation sprintAnim;
   sprintAnim.frameCount = 6;  // Assuming 6 frames for sprint
   sprintAnim.frameDelay = 80; // 80ms between frames (faster than walking)
-  for (int i = 0; i < sprintAnim.frameCount; i++) {
+  for (int i = 0; i < sprintAnim.frameCount; i++)
+  {
     char path[100];
     sprintf(path, "assets/player/sprint/sprint_%d.png", i);
     SDL_Texture *texture = nullptr;
     SDL_Surface *surface = Texture::loadFromFile(path, renderer, texture);
-    if (surface) {
+    if (surface)
+    {
       sprintAnim.frames.push_back(texture);
       SDL_FreeSurface(surface);
     }
@@ -311,12 +349,14 @@ void Player::loadAnimations(SDL_Renderer *renderer) {
   Animation jumpAnim;
   jumpAnim.frameCount = 2;   // Assuming 2 frames for jumping
   jumpAnim.frameDelay = 200; // 200ms between frames
-  for (int i = 0; i < jumpAnim.frameCount; i++) {
+  for (int i = 0; i < jumpAnim.frameCount; i++)
+  {
     char path[100];
     sprintf(path, "assets/player/jump/jump_%d.png", i);
     SDL_Texture *texture = nullptr;
     SDL_Surface *surface = Texture::loadFromFile(path, renderer, texture);
-    if (surface) {
+    if (surface)
+    {
       jumpAnim.frames.push_back(texture);
       SDL_FreeSurface(surface);
     }
@@ -327,25 +367,29 @@ void Player::loadAnimations(SDL_Renderer *renderer) {
   Animation fallAnim;
   fallAnim.frameCount = 2;   // Assuming 2 frames for falling
   fallAnim.frameDelay = 200; // 200ms between frames
-  for (int i = 0; i < fallAnim.frameCount; i++) {
+  for (int i = 0; i < fallAnim.frameCount; i++)
+  {
     char path[100];
     sprintf(path, "assets/player/land/land_%d.png", i);
     SDL_Texture *texture = nullptr;
     SDL_Surface *surface = Texture::loadFromFile(path, renderer, texture);
-    if (surface) {
+    if (surface)
+    {
       fallAnim.frames.push_back(texture);
       SDL_FreeSurface(surface);
     }
   }
   animations[FALLING] = fallAnim;
-
 }
 
-void Player::updateAnimation() {
+void Player::updateAnimation()
+{
   // Only update animation if not dashing
-  if (state != DASHING) {
+  if (state != DASHING)
+  {
     // Reset animation if state changed
-    if (state != previousState) {
+    if (state != previousState)
+    {
       currentFrame = 0;
       frameTimer = 0;
       previousState = state;
@@ -353,9 +397,11 @@ void Player::updateAnimation() {
 
     // Update animation frame
     frameTimer++;
-    if (animations.find(state) != animations.end()) {
+    if (animations.find(state) != animations.end())
+    {
       Animation &currentAnim = animations[state];
-      if (frameTimer >= currentAnim.frameDelay) {
+      if (frameTimer >= currentAnim.frameDelay)
+      {
         frameTimer = 0;
         currentFrame = (currentFrame + 1) % currentAnim.frameCount;
       }
@@ -363,20 +409,25 @@ void Player::updateAnimation() {
   }
 
   // Update facing direction based on movement
-  if (walkingDirection < 0) {
+  if (walkingDirection < 0)
+  {
     facingRight = false;
-  } else if (walkingDirection > 0) {
+  }
+  else if (walkingDirection > 0)
+  {
     facingRight = true;
   }
 }
 
-bool Player::isOnGround() const {
+bool Player::isOnGround() const
+{
   // If we're within the forgiveness time, consider the player on ground
-  if (groundForgivenessTimer > 0) {
+  if (groundForgivenessTimer > 0)
+  {
     return true;
   }
 
-  const float PPM = 32.0f; // Match the PPM value used elsewhere
+  const float PPM = 32.0f;        // Match the PPM value used elsewhere
   const float hitboxScale = 0.7f; // Match the scale used in constructor
 
   // Create a small ray cast downward from player's position
@@ -392,40 +443,44 @@ bool Player::isOnGround() const {
   // Increase ray length for more reliable ground detection
   float rayLength = 0.5f; // Increased from 0.25f to 0.5f for better detection
   b2Vec2 end = start + b2Vec2(0, rayLength);
-  
+
   // Calculate width for side checks - use wider spacing for gaps
   float sideOffset1 = (playerWidth / 2) / PPM * 0.7f; // Reduce side check width to prevent wall climbing
   float sideOffset2 = (playerWidth / 4) / PPM * 0.7f; // Reduce side check width
-  
+
   // Add more ray casts to cover more ground points
   b2Vec2 startLeft1 = start - b2Vec2(sideOffset1, 0);
   b2Vec2 endLeft1 = startLeft1 + b2Vec2(0, rayLength);
-  
+
   b2Vec2 startLeft2 = start - b2Vec2(sideOffset2, 0);
   b2Vec2 endLeft2 = startLeft2 + b2Vec2(0, rayLength);
-  
+
   b2Vec2 startRight1 = start + b2Vec2(sideOffset1, 0);
   b2Vec2 endRight1 = startRight1 + b2Vec2(0, rayLength);
-  
+
   b2Vec2 startRight2 = start + b2Vec2(sideOffset2, 0);
   b2Vec2 endRight2 = startRight2 + b2Vec2(0, rayLength);
 
   // Use Box2D's ray cast to check for ground
-  class GroundRayCastCallback : public b2RayCastCallback {
+  class GroundRayCastCallback : public b2RayCastCallback
+  {
   public:
     bool hit = false;
     b2Body *playerBody;
 
     float ReportFixture(b2Fixture *fixture, const b2Vec2 &point,
-                        const b2Vec2 &normal, float fraction) override {
+                        const b2Vec2 &normal, float fraction) override
+    {
       // Skip player's own fixture
-      if (fixture->GetBody() == playerBody) {
+      if (fixture->GetBody() == playerBody)
+      {
         return -1; // Continue checking
       }
-      
+
       // Strict check: Only count hits from directly below (normal pointing up)
       // This prevents detecting walls as ground
-      if (normal.y < -0.85f) { // Almost vertical normal (was -0.5f)
+      if (normal.y < -0.85f)
+      { // Almost vertical normal (was -0.5f)
         hit = true;
         return 0; // Stop checking
       }
@@ -437,49 +492,56 @@ bool Player::isOnGround() const {
   GroundRayCastCallback callback;
   callback.playerBody = body;
   body->GetWorld()->RayCast(&callback, start, end);
-  
-  if (callback.hit) {
+
+  if (callback.hit)
+  {
     return true;
   }
-  
+
   // If center ray didn't hit, try all side rays
   GroundRayCastCallback callbackLeft1;
   callbackLeft1.playerBody = body;
   body->GetWorld()->RayCast(&callbackLeft1, startLeft1, endLeft1);
-  
-  if (callbackLeft1.hit) {
+
+  if (callbackLeft1.hit)
+  {
     return true;
   }
-  
+
   GroundRayCastCallback callbackLeft2;
   callbackLeft2.playerBody = body;
   body->GetWorld()->RayCast(&callbackLeft2, startLeft2, endLeft2);
-  
-  if (callbackLeft2.hit) {
+
+  if (callbackLeft2.hit)
+  {
     return true;
   }
-  
+
   GroundRayCastCallback callbackRight1;
   callbackRight1.playerBody = body;
   body->GetWorld()->RayCast(&callbackRight1, startRight1, endRight1);
-  
-  if (callbackRight1.hit) {
+
+  if (callbackRight1.hit)
+  {
     return true;
   }
-  
+
   GroundRayCastCallback callbackRight2;
   callbackRight2.playerBody = body;
   body->GetWorld()->RayCast(&callbackRight2, startRight2, endRight2);
-  
+
   return callbackRight2.hit;
 }
 
-void Player::updatePhysics() {
+void Player::updatePhysics()
+{
   b2Vec2 vel = body->GetLinearVelocity();
 
   // Handle dashing
-  if (isDashing) {
-    if (dashTimer > 0) {
+  if (isDashing)
+  {
+    if (dashTimer > 0)
+    {
       // Apply dash velocity directly instead of force
       int dashDirection = walkingDirection != 0 ? walkingDirection : (facingRight ? 1 : -1);
 
@@ -490,13 +552,16 @@ void Player::updatePhysics() {
       body->SetGravityScale(0.0f);
 
       // Store previous state if this is the first frame of dashing
-      if (state != DASHING) {
+      if (state != DASHING)
+      {
         previousState = state;
       }
 
       state = DASHING;
       dashTimer--;
-    } else {
+    }
+    else
+    {
       // End dash
       isDashing = false;
       dashCooldownTimer = dashCooldown;
@@ -508,150 +573,172 @@ void Player::updatePhysics() {
       b2Vec2 currentVel = body->GetLinearVelocity();
       body->SetLinearVelocity(b2Vec2(currentVel.x * 0.5f, currentVel.y));
     }
-  } else {
+  }
+  else
+  {
     // Normal movement when not dashing
 
     // Detect wall climbing attempt - when moving horizontally against a wall but not on ground
-    if (!isOnGround() && walkingDirection != 0) {
+    if (!isOnGround() && walkingDirection != 0)
+    {
       // Check if there's a wall in the direction of movement
       b2Vec2 start = body->GetPosition();
       float playerWidth = getWidth() * 0.7f; // Same hitbox scale as elsewhere
-      float horizontalCheckDistance = 0.2f; // Short distance to check for walls
-      
+      float horizontalCheckDistance = 0.2f;  // Short distance to check for walls
+
       // Position ray at center of player, in direction of movement
       b2Vec2 end = start + b2Vec2(walkingDirection * horizontalCheckDistance, 0);
-      
+
       // Check for collision with wall
-      class WallRayCastCallback : public b2RayCastCallback {
+      class WallRayCastCallback : public b2RayCastCallback
+      {
       public:
         bool hit = false;
-        b2Body* playerBody = nullptr;
-        
-        float ReportFixture(b2Fixture* fixture, const b2Vec2& point, 
-                          const b2Vec2& normal, float fraction) override {
+        b2Body *playerBody = nullptr;
+
+        float ReportFixture(b2Fixture *fixture, const b2Vec2 &point,
+                            const b2Vec2 &normal, float fraction) override
+        {
           // Skip player's own fixture
-          if (fixture->GetBody() == playerBody) {
+          if (fixture->GetBody() == playerBody)
+          {
             return -1;
           }
           hit = true;
           return 0;
         }
       };
-      
+
       WallRayCastCallback wallCallback;
       wallCallback.playerBody = body;
       body->GetWorld()->RayCast(&wallCallback, start, end);
-      
+
       // If we're trying to move into a wall while in the air
-      if (wallCallback.hit) {
+      if (wallCallback.hit)
+      {
         // Apply a slight push away from wall to prevent climbing
         body->ApplyLinearImpulse(
-          b2Vec2(-walkingDirection * 0.05f, 0.05f), // Push away from wall with slight downward force
-          body->GetWorldCenter(), 
-          true
-        );
+            b2Vec2(-walkingDirection * 0.05f, 0.05f), // Push away from wall with slight downward force
+            body->GetWorldCenter(),
+            true);
       }
     }
-    
+
     // Check for ceiling collisions - if the player is moving upward
-    if (vel.y < 0) {
+    if (vel.y < 0)
+    {
       // Cast a ray upward to check for ceiling
       b2Vec2 start = body->GetPosition();
       float playerHeight = getHeight() * 0.7f; // Same hitbox scale as elsewhere
-      
+
       // Cast from top of player's head
       start.y -= (playerHeight / 2) / PPM;
-      
+
       float ceilingCheckDistance = 0.2f;
       b2Vec2 end = start - b2Vec2(0, ceilingCheckDistance);
-      
-      class CeilingRayCastCallback : public b2RayCastCallback {
+
+      class CeilingRayCastCallback : public b2RayCastCallback
+      {
       public:
         bool hit = false;
-        b2Body* playerBody = nullptr;
-        
-        float ReportFixture(b2Fixture* fixture, const b2Vec2& point, 
-                          const b2Vec2& normal, float fraction) override {
+        b2Body *playerBody = nullptr;
+
+        float ReportFixture(b2Fixture *fixture, const b2Vec2 &point,
+                            const b2Vec2 &normal, float fraction) override
+        {
           // Skip player's own fixture
-          if (fixture->GetBody() == playerBody) {
+          if (fixture->GetBody() == playerBody)
+          {
             return -1;
           }
           hit = true;
           return 0;
         }
       };
-      
+
       CeilingRayCastCallback ceilingCallback;
       ceilingCallback.playerBody = body;
       body->GetWorld()->RayCast(&ceilingCallback, start, end);
-      
+
       // If we hit a ceiling while moving upward
-      if (ceilingCallback.hit) {
+      if (ceilingCallback.hit)
+      {
         // Stop upward velocity and apply a small downward velocity
-        if (vel.y < 0) {
+        if (vel.y < 0)
+        {
           // Calculate a bounce-back velocity based on current velocity
           float bounceVelocity = vel.y * -0.2f; // 20% bounce in the opposite direction
           // Ensure minimum bounce
-          if (bounceVelocity < 0.5f) {
+          if (bounceVelocity < 0.5f)
+          {
             bounceVelocity = 0.5f;
           }
-          
+
           body->SetLinearVelocity(b2Vec2(vel.x, bounceVelocity)); // Apply downward velocity with bounce
-          isJumping = false; // Stop the jump
-          shouldJump = false; // Prevent immediate re-jump
+          isJumping = false;                                      // Stop the jump
+          shouldJump = false;                                     // Prevent immediate re-jump
         }
       }
     }
 
     // Set current speed based on walk/run state, but only when on ground
-    if (isOnGround()) {
+    if (isOnGround())
+    {
       currentSpeed = isRunning ? runSpeed : walkSpeed;
-    } else {
+    }
+    else
+    {
       // Use a slightly higher speed in air for better control
       currentSpeed = isRunning ? (runSpeed * 0.9f) : (walkSpeed * 0.9f);
     }
 
     // Horizontal movement with smoother acceleration - convert to m/s
     float targetVelocityX = walkingDirection * currentSpeed / PPM;
-    
+
     // When we want to stop (walkingDirection == 0), adjust deceleration to simulate icy surfaces
-    if (walkingDirection == 0 && isOnGround()) {
+    if (walkingDirection == 0 && isOnGround())
+    {
       // Apply a very small deceleration on icy surfaces to simulate sliding
       // Just dampen current velocity slightly instead of zeroing it out
       float iceDeceleration = 0.02f; // Very small deceleration for ice
       float newVelX = vel.x * (1.0f - iceDeceleration);
-      
+
       // Only update if speed is changing significantly
-      if (abs(newVelX - vel.x) > 0.001f) {
+      if (abs(newVelX - vel.x) > 0.001f)
+      {
         body->SetLinearVelocity(b2Vec2(newVelX, vel.y));
       }
     }
     // For active movement, apply normal impulse but with reduced deceleration
-    else {
+    else
+    {
       // Add a velocity boost to prevent getting stuck at very low speeds
-      if (abs(vel.x) < 0.15f && walkingDirection != 0 && isOnGround()) {
+      if (abs(vel.x) < 0.15f && walkingDirection != 0 && isOnGround())
+      {
         // Give a stronger boost to overcome edge-catching
         float boostFactor = 0.5f;
         // Only modify the x component, preserving y velocity
         body->SetLinearVelocity(b2Vec2(boostFactor * walkingDirection, vel.y));
       }
-      
+
       float velocityChange = targetVelocityX - vel.x;
       float impulseX = body->GetMass() * velocityChange;
       body->ApplyLinearImpulse(b2Vec2(impulseX, 0), body->GetWorldCenter(), true);
     }
 
     // Jumping - only if on ground
-    if (isJumping && isOnGround()) {
+    if (isJumping && isOnGround())
+    {
       // Apply a strong upward impulse instead of setting velocity directly -
       // convert to m/s
       float jumpImpulse = body->GetMass() * jumpForce / PPM;
-      
+
       // Cancel any downward velocity first for more consistent jumps
-      if (vel.y > 0) {
+      if (vel.y > 0)
+      {
         body->SetLinearVelocity(b2Vec2(vel.x, 0));
       }
-      
+
       body->ApplyLinearImpulse(b2Vec2(0, -jumpImpulse), body->GetWorldCenter(),
                                true);
       state = JUMPING;
@@ -659,89 +746,108 @@ void Player::updatePhysics() {
     }
 
     // Update player state based on physics
-    if (!isOnGround()) {
-      if (vel.y < 0) {
+    if (!isOnGround())
+    {
+      if (vel.y < 0)
+      {
         state = JUMPING;
-      } else {
+      }
+      else
+      {
         state = FALLING;
       }
-    } else if (abs(vel.x) > 0.5f) {
+    }
+    else if (abs(vel.x) > 0.5f)
+    {
       // Determine if player is walking intentionally or sliding on ice
-      if (abs(walkingDirection) > 0) {
+      if (abs(walkingDirection) > 0)
+      {
         // Normal walking/running when actively moving
         state = (isRunning && isWalking) ? SPRINT : WALKING;
-      } else if (abs(vel.x) > 0.8f) {
+      }
+      else if (abs(vel.x) > 0.8f)
+      {
         // Fast sliding shows sprint animation
         state = SPRINT;
-      } else {
+      }
+      else
+      {
         // Slow sliding shows walking animation
         state = WALKING;
       }
-    } else {
+    }
+    else
+    {
       state = IDLE;
     }
   }
 
   // Update dash cooldown timer
-  if (dashCooldownTimer > 0) {
+  if (dashCooldownTimer > 0)
+  {
     dashCooldownTimer--;
   }
 }
 
-void Player::update() {
+void Player::update()
+{
+
   const float PPM = 32.0f; // Match the PPM value used elsewhere
-  
+
   // Store previous velocity for speed bug detection
   b2Vec2 prevVel = body->GetLinearVelocity();
-  
+
   // Anti-sticking code: detect when player is stuck
   static int stuckCounter = 0;
   static b2Vec2 lastPosition = body->GetPosition();
   b2Vec2 position = body->GetPosition();
-  
+
   // If player has movement input but position hasn't changed much AND is on ground
   // For icy surfaces, make the check a bit more lenient to avoid false positives
-  if (walkingDirection != 0 && 
+  if (walkingDirection != 0 &&
       abs(position.x - lastPosition.x) < 0.008f && // More lenient for icy surfaces
       abs(prevVel.x) < 0.25f &&
-      isOnGround()) { 
+      isOnGround())
+  {
     stuckCounter++;
-    
+
     // If stuck for multiple frames, apply unsticking force
-    if (stuckCounter > 3) { // Slightly more frames to confirm actual sticking vs. ice physics
+    if (stuckCounter > 3)
+    { // Slightly more frames to confirm actual sticking vs. ice physics
       // Apply stronger horizontal impulse in the direction of input
       float unstickImpulse = body->GetMass() * 1.4f; // Slightly reduced for icy surfaces
-      
+
       // Apply a pure horizontal force with no vertical component
       body->ApplyLinearImpulse(
-        b2Vec2(walkingDirection * unstickImpulse, 0.0f),
-        body->GetWorldCenter(), 
-        true
-      );
-      
+          b2Vec2(walkingDirection * unstickImpulse, 0.0f),
+          body->GetWorldCenter(),
+          true);
+
       // Get current velocity to preserve vertical component
       b2Vec2 currentVel = body->GetLinearVelocity();
-      
+
       // Reset velocity to ensure we don't have any opposing forces
       // Strictly maintain the current Y velocity to avoid any Y-axis changes
       body->SetLinearVelocity(b2Vec2(walkingDirection * 0.6f, currentVel.y));
-      
+
       stuckCounter = 0;
-      
+
       // Log detection of sticking for debugging
       SDL_Log("Unsticking player on ice at position (%f, %f) with velocity (%f, %f)",
               position.x, position.y, currentVel.x, currentVel.y);
     }
-  } else {
+  }
+  else
+  {
     stuckCounter = 0;
   }
-  
+
   // Save current position for next frame
   lastPosition = position;
-  
+
   // Check if we're actually on the ground (without using the forgiveness timer)
   bool physicallyOnGround = false;
-  
+
   {
     // Simple raycast to check ground - using existing implementation
     const float hitboxScale = 0.7f;
@@ -750,48 +856,57 @@ void Player::update() {
     start.y += (playerHeight / 2) / PPM;
     float rayLength = 0.5f; // Increased ray length for better detection
     b2Vec2 end = start + b2Vec2(0, rayLength);
-    
+
     // Use a local ray cast callback for ground detection
-    class GroundCallback : public b2RayCastCallback {
+    class GroundCallback : public b2RayCastCallback
+    {
     public:
       bool hit = false;
-      b2Body* playerBody = nullptr;
-      
-      float ReportFixture(b2Fixture* fixture, const b2Vec2& point, 
-                         const b2Vec2& normal, float fraction) override {
-        if (fixture->GetBody() == playerBody) {
+      b2Body *playerBody = nullptr;
+
+      float ReportFixture(b2Fixture *fixture, const b2Vec2 &point,
+                          const b2Vec2 &normal, float fraction) override
+      {
+        if (fixture->GetBody() == playerBody)
+        {
           return -1; // Skip player's own fixture
         }
-        if (normal.y < -0.85f) { // Strict ground check to prevent wall climbing
+        if (normal.y < -0.85f)
+        { // Strict ground check to prevent wall climbing
           hit = true;
           return 0;
         }
         return -1;
       }
     };
-    
+
     GroundCallback callback;
     callback.playerBody = body;
     body->GetWorld()->RayCast(&callback, start, end);
-    
+
     physicallyOnGround = callback.hit;
   }
-  
+
   // Handle ground forgiveness timer
-  if (physicallyOnGround) {
+  if (physicallyOnGround)
+  {
     // Reset forgiveness timer when on ground
     groundForgivenessTimer = groundForgivenessTime;
-  } else if (groundForgivenessTimer > 0) {
+  }
+  else if (groundForgivenessTimer > 0)
+  {
     // Decrement timer when not on ground
     groundForgivenessTimer--;
   }
 
   // Reset jump flag if on ground (which can include forgiveness time)
-  if (isOnGround()) {
+  if (isOnGround())
+  {
     shouldJump = true;
 
     // Fix speed accumulation bug by directly setting velocity when landing
-    if (previousState == FALLING || previousState == JUMPING) {
+    if (previousState == FALLING || previousState == JUMPING)
+    {
       // Preserve horizontal velocity but reset any accumulated values
       float targetVelocityX =
           walkingDirection * (isRunning ? runSpeed : walkSpeed);
@@ -814,25 +929,32 @@ void Player::update() {
   float playerX = position.x * PPM;
   float playerY = position.y * PPM;
 
-  if (playerX < -W_SPRITESIZE) {
+  if (playerX < -W_SPRITESIZE)
+  {
     position.x = (screenWidth + W_SPRITESIZE / 2) / PPM;
     teleported = true;
-  } else if (playerX > screenWidth + W_SPRITESIZE) {
+  }
+  else if (playerX > screenWidth + W_SPRITESIZE)
+  {
     position.x = (-W_SPRITESIZE / 2) / PPM;
     teleported = true;
   }
 
   // Check vertical boundaries
-  if (playerY < -W_SPRITESIZE) {
+  if (playerY < -W_SPRITESIZE)
+  {
     position.y = (screenHeight + W_SPRITESIZE / 2) / PPM;
     teleported = true;
-  } else if (playerY > screenHeight + W_SPRITESIZE) {
+  }
+  else if (playerY > screenHeight + W_SPRITESIZE)
+  {
     position.y = (-W_SPRITESIZE / 2) / PPM;
     teleported = true;
   }
 
   // Apply teleportation if needed
-  if (teleported) {
+  if (teleported)
+  {
     body->SetTransform(position, body->GetAngle());
   }
 
@@ -849,53 +971,144 @@ void Player::update() {
 
   // Update animation
   updateAnimation();
+  PlayerState currentState = state; // Get the state determined by physics
 
+  // --- Walking/Sprinting Sound ---
+  bool shouldBeWalking = (currentState == WALKING || currentState == SPRINT);
+
+  if (shouldBeWalking && !GameState::isPlayingWalkingSound)
+  {
+    // Player STARTING to walk/sprint
+    SOUND_MANAGER.setSoundEffectVolume(10);    // Set volume once when starting
+    SOUND_MANAGER.playSoundEffect("walk", -1); // Play looped
+    GameState::isPlayingWalkingSound = true;
+
+    // Stop dash sound if it was playing (can't walk and dash simultaneously)
+    if (GameState::isPlayingDashingSound)
+    {
+      SOUND_MANAGER.stopSoundEffect("dash");
+      GameState::isPlayingDashingSound = false;
+    }
+  }
+  else if (!shouldBeWalking && GameState::isPlayingWalkingSound)
+  {
+    // Player STOPPING walking/sprinting
+    SOUND_MANAGER.stopSoundEffect("walk");
+    GameState::isPlayingWalkingSound = false;
+  }
+
+  // --- Dashing Sound ---
+  bool shouldBeDashing = (currentState == DASHING);
+
+  if (shouldBeDashing && !GameState::isPlayingDashingSound)
+  {
+    // Player STARTING to dash
+    SOUND_MANAGER.setSoundEffectVolume(10);    // Set volume once when starting
+    SOUND_MANAGER.playSoundEffect("dash", -1); // Play looped (use -1 for looping)
+    GameState::isPlayingDashingSound = true;
+
+    // Stop walking sound if it was playing (can't walk and dash simultaneously)
+    if (GameState::isPlayingWalkingSound)
+    {
+      SOUND_MANAGER.stopSoundEffect("walk");
+      GameState::isPlayingWalkingSound = false;
+    }
+  }
+  else if (!shouldBeDashing && GameState::isPlayingDashingSound)
+  {
+    // Player STOPPING dashing
+    SOUND_MANAGER.stopSoundEffect("dash");
+    GameState::isPlayingDashingSound = false;
+  }
+
+  // --- Reload Sound ---
+  // This logic seems intended to play the sound periodically during reload.
+  // Let's refine it slightly to play when a bullet is actually added.
+  if (isReloading && bulletsCount < maxBullets)
+  {
+    if (reloadTimer <= 0)
+    {
+      // Play sound just before the bullet count increments in the next part of this block
+      SOUND_MANAGER.setSoundEffectVolume(50);
+      SOUND_MANAGER.playSoundEffect("reload"); // Play once
+
+      bulletsCount++;
+      reloadTimer = reloadRate; // Reset timer *after* playing sound and adding bullet
+
+      if (bulletsCount >= maxBullets)
+      {
+        isReloading = false; // Stop reloading process
+      }
+    }
+    else
+    {
+      reloadTimer--;
+    }
+  }
+  else if (!isReloading && reloadTimer != reloadRate)
+  {
+    // Ensure timer is reset if reloading stops prematurely (e.g., player action interrupts)
+    reloadTimer = 0; // Or keep its value if you want to resume reload timer later? Resetting is safer.
+  }
   // Update bullets
   updateBullets();
 
   // Handle reloading
-  if (isReloading && bulletsCount < maxBullets) {
-    if (reloadTimer <= 0) {
+  if (isReloading && bulletsCount < maxBullets)
+  {
+    if (reloadTimer <= 0)
+    {
       bulletsCount++;
       reloadTimer = reloadRate;
 
       // Stop reloading if we've reached max bullets
-      if (bulletsCount >= maxBullets) {
+      if (bulletsCount >= maxBullets)
+      {
         isReloading = false;
       }
-    } else {
+    }
+    else
+    {
       reloadTimer--;
     }
   }
 }
 
-void Player::handleMouseMotion(int x, int y) {
+void Player::handleMouseMotion(int x, int y)
+{
   mouseX = x;
   mouseY = y;
 }
 
-void Player::render(SDL_Renderer *renderer) {
+void Player::render(SDL_Renderer *renderer)
+{
   // Get current animation frame
   SDL_Texture *currentTexture = nullptr;
 
   // If dashing, use the current frame from the previous state
-  if (state == DASHING) {
+  if (state == DASHING)
+  {
     // Use the animation from the state before dashing
     if (animations.find(previousState) != animations.end() &&
         !animations[previousState].frames.empty() &&
-        currentFrame < animations[previousState].frames.size()) {
+        currentFrame < animations[previousState].frames.size())
+    {
       currentTexture = animations[previousState].frames[currentFrame];
     }
-  } else {
+  }
+  else
+  {
     // Normal animation handling
     if (animations.find(state) != animations.end() &&
         !animations[state].frames.empty() &&
-        currentFrame < animations[state].frames.size()) {
+        currentFrame < animations[state].frames.size())
+    {
       currentTexture = animations[state].frames[currentFrame];
     }
   }
 
-  if (currentTexture) {
+  if (currentTexture)
+  {
     SDL_Rect destRect = {getX(), getY(), getWidth(), getHeight()};
 
     // Flip texture based on facing direction
@@ -905,14 +1118,17 @@ void Player::render(SDL_Renderer *renderer) {
     SDL_SetTextureColorMod(currentTexture, 255, 255, 255); // Normal color
     SDL_RenderCopyEx(renderer, currentTexture, nullptr, &destRect, 0, nullptr,
                      flip);
-  } else {
+  }
+  else
+  {
     // Fallback to original rendering if animation frame is not available
     Sprite::render(renderer, getX(), getY());
   }
 
   renderBullets(renderer);
   // Render gun
-  if (gunTexture) {
+  if (gunTexture)
+  {
     // Calculate center of player
     int playerCenterX = getX() + getWidth() / 2;
     int playerCenterY = getY() + getHeight() / 2;
@@ -934,7 +1150,8 @@ void Player::render(SDL_Renderer *renderer) {
 
     // Determine if gun should be flipped
     SDL_RendererFlip gunFlip = SDL_FLIP_NONE;
-    if (angle > 90 || angle < -90) {
+    if (angle > 90 || angle < -90)
+    {
       gunFlip = SDL_FLIP_VERTICAL;
     }
 
@@ -944,15 +1161,21 @@ void Player::render(SDL_Renderer *renderer) {
   }
 }
 
-void Player::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
-  if (event->type == SDL_KEYDOWN) {
-    switch (event->key.keysym.sym) {
+void Player::handleEvents(SDL_Event *event, SDL_Renderer *renderer)
+{
+  if (event->type == SDL_KEYDOWN)
+  {
+    switch (event->key.keysym.sym)
+    {
     case SDLK_SPACE:
       // Only trigger jump if space wasn't already pressed
-      if (!spacePressed && shouldJump && (isOnGround() || groundForgivenessTimer > 0)) {
+      if (!spacePressed && shouldJump && (isOnGround() || groundForgivenessTimer > 0))
+      {
         isJumping = true;
         shouldJump = false;
-        // Reset forgiveness timer when jumping
+        // SOUND_MANAGER.setMusicVolume(10); // Likely meant setSoundEffectVolume
+        SOUND_MANAGER.setSoundEffectVolume(30); // Example volume for jump
+        SOUND_MANAGER.playSoundEffect("jump");  // Play jump sound once
         groundForgivenessTimer = 0;
       }
       spacePressed = true;
@@ -967,7 +1190,8 @@ void Player::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
       break;
     case SDLK_r:
       // Start reloading if not already reloading and not at max bullets
-      if (!isReloading && bulletsCount < maxBullets) {
+      if (!isReloading && bulletsCount < maxBullets)
+      {
         isReloading = true;
         reloadTimer = reloadRate;
       }
@@ -975,30 +1199,23 @@ void Player::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
     case SDLK_LCTRL:
     case SDLK_RCTRL:
       // Only change running state if on ground
-      if (isOnGround()) {
+      if (isOnGround())
+      {
         isRunning = false;
       }
       break;
     case SDLK_LSHIFT:
     case SDLK_RSHIFT:
-      // Initiate dash if not on cooldown and not already dashing
-      if ((dashCooldownTimer == 0 && !isDashing) || isFirstDash) {
+      if ((dashCooldownTimer == 0 && !isDashing) || isFirstDash)
+      {
+        // Sound is handled in update() based on state change, no need to play here directly
         isDashing = true;
         dashTimer = dashDuration;
-        // Store previous state and update current state immediately
-        previousState = state;
-        state = DASHING;
+        // state = DASHING; // State is set in updatePhysics based on isDashing flag
         isFirstDash = false;
-        // Get current velocity and apply dash while preserving vertical momentum
         b2Vec2 currentVel = body->GetLinearVelocity();
-        
-        // Use walkingDirection for dash direction, fall back to facingRight if no movement input
         int dashDirection = walkingDirection != 0 ? walkingDirection : (facingRight ? 1 : -1);
-        
-        // Set horizontal velocity for dash while preserving vertical velocity
         body->SetLinearVelocity(b2Vec2(dashDirection * dashVelocity / PPM, currentVel.y));
-        
-        // Disable gravity immediately for consistent dash behavior
         body->SetGravityScale(0.0f);
       }
       break;
@@ -1006,19 +1223,23 @@ void Player::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
       break;
     }
   }
-  if (event->type == SDL_KEYUP) {
-    switch (event->key.keysym.sym) {
+  if (event->type == SDL_KEYUP)
+  {
+    switch (event->key.keysym.sym)
+    {
     case SDLK_SPACE:
       spacePressed = false;
       break;
     case SDLK_a:
-      if (walkingDirection == -1) {
+      if (walkingDirection == -1)
+      {
         walkingDirection = 0;
         isWalking = false;
       }
       break;
     case SDLK_d:
-      if (walkingDirection == 1) {
+      if (walkingDirection == 1)
+      {
         walkingDirection = 0;
         isWalking = false;
       }
@@ -1026,18 +1247,30 @@ void Player::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
     case SDLK_LCTRL:
     case SDLK_RCTRL:
       // Only change running state if on ground
-      if (isOnGround()) {
+      if (isOnGround())
+      {
         isRunning = true;
       }
       break;
     default:
       break;
     }
-  } else if (event->type == SDL_MOUSEMOTION) {
+  }
+  else if (event->type == SDL_MOUSEMOTION)
+  {
     // Update mouse position for gun rotation
     handleMouseMotion(event->motion.x, event->motion.y);
-  } else if (event->type == SDL_MOUSEBUTTONDOWN) {
-    if (event->button.button == SDL_BUTTON_LEFT && canShot) {
+  }
+  else if (event->type == SDL_MOUSEBUTTONDOWN)
+  {
+    if (event->button.button == SDL_BUTTON_LEFT && canShot)
+    {
+      SOUND_MANAGER.setMusicVolume(10);
+      if (bulletsCount > 0)
+      {
+        SOUND_MANAGER.playSoundEffect("shoot");
+      }
+
       fireBullet(renderer);
     }
   }
@@ -1048,9 +1281,10 @@ void renderDebugSpriteBounds(SDL_Renderer *renderer);
 
 // Add this implementation after the render method
 
-void Player::renderDebugSpriteBounds(SDL_Renderer *renderer) {
+void Player::renderDebugSpriteBounds(SDL_Renderer *renderer)
+{
   const float PPM = 32.0f; // Match the PPM value used elsewhere
-  
+
   // Set debug draw color (semi-transparent green for sprite bounds)
   SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
   SDL_SetRenderDrawColor(renderer, 0, 255, 0, 128);
@@ -1066,43 +1300,43 @@ void Player::renderDebugSpriteBounds(SDL_Renderer *renderer) {
                      spriteRect.x + spriteRect.w, spriteRect.y + spriteRect.h);
   SDL_RenderDrawLine(renderer, spriteRect.x + spriteRect.w, spriteRect.y,
                      spriteRect.x, spriteRect.y + spriteRect.h);
-                     
+
   // Also draw the collision hitbox (blue)
   SDL_SetRenderDrawColor(renderer, 0, 0, 255, 128);
   float hitboxScale = 0.7f; // Same scale as in constructor
-  
+
   // Calculate collision box dimensions
   int collisionWidth = getWidth() * hitboxScale;
   int collisionHeight = getHeight() * hitboxScale;
   int collisionX = getX() + (getWidth() - collisionWidth) / 2;
   int collisionY = getY() + (getHeight() - collisionHeight) / 2;
-  
+
   SDL_Rect collisionRect = {collisionX, collisionY, collisionWidth, collisionHeight};
   SDL_RenderDrawRect(renderer, &collisionRect);
-  
+
   // Draw ground check rays (yellow)
   SDL_SetRenderDrawColor(renderer, 255, 255, 0, 200);
-  
+
   // Calculate ray positions based on player's position and hitbox
   b2Vec2 position = body->GetPosition();
   float playerHeight = getHeight() * hitboxScale;
   float playerWidth = getWidth() * hitboxScale;
-  
+
   // Center ray - Start at bottom center of collision box
   int rayCenterStartX = (int)(position.x * PPM);
-  int rayCenterStartY = (int)((position.y + playerHeight/2/PPM) * PPM);
+  int rayCenterStartY = (int)((position.y + playerHeight / 2 / PPM) * PPM);
   int rayEndY = rayCenterStartY + (int)(0.25f * PPM); // 25cm ray (match updated length)
-  
+
   // Side rays at full and quarter width
-  float sideOffset1 = playerWidth/2;
-  float sideOffset2 = playerWidth/4;
-  
+  float sideOffset1 = playerWidth / 2;
+  float sideOffset2 = playerWidth / 4;
+
   // Calculate ray start positions
   int rayLeft1StartX = rayCenterStartX - (int)sideOffset1;
   int rayLeft2StartX = rayCenterStartX - (int)sideOffset2;
   int rayRight1StartX = rayCenterStartX + (int)sideOffset1;
   int rayRight2StartX = rayCenterStartX + (int)sideOffset2;
-  
+
   // Draw the rays
   SDL_RenderDrawLine(renderer, rayCenterStartX, rayCenterStartY, rayCenterStartX, rayEndY);
   SDL_RenderDrawLine(renderer, rayLeft1StartX, rayCenterStartY, rayLeft1StartX, rayEndY);

@@ -1,12 +1,11 @@
 #pragma once
 #include "CONSTANTS.hpp"
 #include "buttons.hpp"
-#include "music.hpp"
 #include "textures.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <functional>
-#include <music.hpp>
+#include "soundmanager.hpp"
 class mainmenu {
 private:
   Button buttons[3];
@@ -71,8 +70,8 @@ mainmenu::mainmenu(SDL_Renderer *renderer, std::function<void()> start_callback,
   buttons[2].setPosition(W_WIDTH / 2 - buttons[2].getRect().w / 2,
                          W_HEIGHT / 2 - buttons[2].getRect().h / 2 + 350);
   buttons[2].setCallback(exit_callback);
-  MUSIC.playMusic("menu");
-  MUSIC.setVolume(10);
+  SOUND_MANAGER.playMusic("menu");
+  SOUND_MANAGER.setMusicVolume(10);
 }
 
 mainmenu::~mainmenu() {

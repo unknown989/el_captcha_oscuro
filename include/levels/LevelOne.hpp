@@ -2,7 +2,7 @@
 #include "Level.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
-#include <music.hpp>
+#include <soundmanager.hpp>
 #include <string>
 
 class LevelOne : public Level {
@@ -53,7 +53,7 @@ LevelOne::LevelOne(SDL_Renderer *renderer) : Level(renderer) {
   SDL_Log("Loading level one...");
   readLevel("levels/lvl1.txt", renderer);
   loadLevelBackground("assets/backgrounds/level1.png", renderer);
-  MUSIC.playMusic("enigma");
+  SOUND_MANAGER.playMusic("enigma");
 
   // Load fonts
   statsFont = TTF_OpenFont("assets/fonts/ARCADECLASSIC.ttf", 24);
@@ -246,6 +246,19 @@ void LevelOne::renderTutorial(SDL_Renderer *renderer) {
   }
   yPos += yStep;
   instructionText = "Press R to reload";
+  surface =
+      TTF_RenderText_Solid(tutorialFont, instructionText.c_str(), textColor);
+  if (surface) {
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (texture) {
+      SDL_Rect rect = {100, yPos, surface->w, surface->h};
+      SDL_RenderCopy(renderer, texture, NULL, &rect);
+      SDL_DestroyTexture(texture);
+    }
+    SDL_FreeSurface(surface);
+  }
+  yPos += yStep;
+  instructionText = "Press Ctrl+R to restart the parkour level";
   surface =
       TTF_RenderText_Solid(tutorialFont, instructionText.c_str(), textColor);
   if (surface) {

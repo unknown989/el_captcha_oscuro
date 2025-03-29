@@ -5,7 +5,7 @@
 #include <SDL2/SDL_ttf.h>
 #include <string>
 #include <vector>
-#include "music.hpp"
+#include "soundmanager.hpp"
 
 class LevelTrivia : public Level {
 public:
@@ -103,7 +103,7 @@ LevelTrivia::LevelTrivia(SDL_Renderer *renderer) : Level(renderer) {
   questionStartTime = SDL_GetTicks();
   
   SDL_Log("Trivia level loaded successfully");
-  MUSIC.playMusic("amicitia");
+  SOUND_MANAGER.playMusic("amicitia");
 }
 
 LevelTrivia::~LevelTrivia() {

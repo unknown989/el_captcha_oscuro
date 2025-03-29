@@ -2,7 +2,7 @@
 #include "GameState.hpp"
 #include "Level.hpp"
 #include "theora/theoraplay.h"
-#include "music.hpp"
+#include "soundmanager.hpp"
 
 
 // Audio queue structure for handling audio packets
@@ -183,8 +183,14 @@ void LevelZero::update() {
   }
 }
 
-void LevelZero::handleEvents(SDL_Event *e, SDL_Renderer *r) {
+void LevelZero::handleEvents(SDL_Event *event, SDL_Renderer *r) {
   // Allow skipping the video with spacebar or escape
+  if (event->type == SDL_KEYDOWN) {
+    // make sdl break the game if Q was pressed
+    if (event->key.keysym.sym == SDLK_SPACE) {
+      isOver = true;
+    }
+  }
 }
 
 LevelZero::LevelZero(SDL_Renderer *renderer) : Level(renderer) {
@@ -205,7 +211,8 @@ LevelZero::LevelZero(SDL_Renderer *renderer) : Level(renderer) {
   }
 
   // Stop playing music
-  MUSIC.stopMusic();
+  SOUND_MANAGER.stopMusic();
+  SOUND_MANAGER.stopAllSoundEffects();
 
   // Wait for first video and audio frames
   while (!video || !audio) {

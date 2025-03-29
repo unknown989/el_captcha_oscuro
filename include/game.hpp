@@ -11,7 +11,7 @@
 #include <levels/LevelOne.hpp>
 #include <levels/LevelTrivia.hpp>
 #include <levels/LevelZero.hpp>
-#include <music.hpp>
+#include <soundmanager.hpp>
 
 
 class Game {
@@ -62,7 +62,7 @@ Game::Game() {
                  SDL_GetError());
   }
 
-  if (!MUSIC.init()) {
+  if (!SOUND_MANAGER.init()) {
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
                  "SDL_mixer could not initialize! SDL_mixer Error: %s\n",
                  Mix_GetError());
@@ -74,17 +74,24 @@ Game::Game() {
                  SDL_GetError());
   }
   // Music
-  MUSIC.loadMusic("menu", "assets/music/Sadness to happiness.wav");
-  MUSIC.loadMusic("boss", "assets/music/La Fiola 2.wav");
-  MUSIC.loadMusic("amicitia", "assets/music/Amicitia.wav");
-  MUSIC.loadMusic("enigma", "assets/music/Enigma #2.wav");
+  SOUND_MANAGER.loadMusic("menu", "assets/music/Sadness to happiness.wav");
+  SOUND_MANAGER.loadMusic("boss", "assets/music/La Fiola 2.wav");
+  SOUND_MANAGER.loadMusic("amicitia", "assets/music/Amicitia.wav");
+  SOUND_MANAGER.loadMusic("enigma", "assets/music/Enigma #2.wav");
+  // Sound effects
+  SOUND_MANAGER.loadSoundEffect("click","assets/sounds/click.wav");
+  SOUND_MANAGER.loadSoundEffect("dash","assets/sounds/dash.wav"); // x
+  SOUND_MANAGER.loadSoundEffect("jump","assets/sounds/jump.wav"); // x
+  SOUND_MANAGER.loadSoundEffect("reload","assets/sounds/reload.wav"); // x
+  SOUND_MANAGER.loadSoundEffect("shoot","assets/sounds/shoot.wav"); // x
+  SOUND_MANAGER.loadSoundEffect("walk","assets/sounds/walk.wav"); // x
   // Menu
   // using inline functions with menu's buttons to change the state of the game
   menu = new mainmenu(
       renderer,
       [this] {
         GameState::isMenu = false;
-        GameState::setCurrentLevel(5); // Load hard parkour level
+        GameState::setCurrentLevel(3);
         GameState::isLoading = true;
       },
       NULL, [] { GameState::running = false; });

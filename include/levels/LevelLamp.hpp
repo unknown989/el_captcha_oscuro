@@ -244,6 +244,7 @@ void LevelLamp::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
       
       // Ensure within bounds
       if (i >= 0 && i < 8 && j >= 0 && j < 6) {
+        SOUND_MANAGER.playSoundEffect("click");
         // Toggle lamp state
         if (input_lamps[i][j].state == OFF) {
           input_lamps[i][j].state = ON_GREEN;
@@ -259,6 +260,7 @@ void LevelLamp::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
           patternStartTime = SDL_GetTicks();
         }
       }
+
     }
   }
 }
