@@ -1,209 +1,371 @@
 # El Captcha Oscuro
 
-A **2D platformer game** built with **SDL2** and **Box2D** physics engine.
+A sophisticated **2D platformer game** built with **SDL2** and **Box2D** physics engine, featuring advanced physics-based gameplay, multiple level types, and rich visual effects.
 
-##  Overview
+## 🎮 Game Overview
 
-This game features:
-- **Physics-based gameplay** using Box2D
-- **Level-based progression** system
-- **Player character with shooting mechanics**
-- **Enemy interactions**
-- **Background music and sound effects**
-- **Tile-based level design**
+El Captcha Oscuro is a physics-based platformer that combines precise movement mechanics with shooting elements. The game features:
 
-## ️ Technologies Used
+- **Advanced physics simulation** using Box2D for realistic movement and collisions
+- **Multiple specialized level types** including parkour challenges, puzzles, and boss fights
+- **Dynamic player mechanics** with running, jumping, dashing, and shooting capabilities
+- **Sophisticated animation system** with state-based character animations
+- **Environmental effects** including snow particles and crumbling platforms
+- **Immersive audio** with background music and contextual sound effects
+- **Tile-based level design** with various block types and properties
 
-- **C++**
-- **SDL2** (Simple DirectMedia Layer)
-  - `SDL2_image` for texture loading
-  - `SDL2_ttf` for text rendering
-  - `SDL2_mixer` for audio
-- **Box2D** physics engine
+## 🧰 Technical Architecture
 
----
+### Core Technologies
 
-##  Project Structure
+- **C++** as the primary programming language
+- **SDL2** (Simple DirectMedia Layer) for cross-platform rendering and input handling
+  - `SDL2_image` for texture loading and manipulation
+  - `SDL2_ttf` for font rendering
+  - `SDL2_mixer` for audio management
+- **Box2D** physics engine for realistic physics simulation
+- **Theora/Vorbis** for video and audio compression
+
+### Engine Design
+
+The game is built on a custom engine with the following key components:
+
+1. **Game Loop System**
+   - Managed by the `Game` class which handles initialization, updates, rendering, and cleanup
+   - Maintains a consistent frame rate with separate update and render phases
+   - Handles state transitions between menu, loading screens, and gameplay
+
+2. **Level Management System**
+   - Base `Level` class with specialized derived classes for different level types
+   - Level loading from text files with character-based tile mapping
+   - Physics world management with Box2D integration
+   - Collision detection and response handling
+
+3. **Rendering System**
+   - Sprite-based rendering with texture caching
+   - Animation system with frame-based animations for different states
+   - Particle effects for environmental elements like snow
+   - Debug rendering capabilities for physics objects
+
+4. **Input System**
+   - Event-based input handling for keyboard and mouse
+   - Configurable controls for player movement and actions
+   - UI interaction for menus and buttons
+
+5. **Audio System**
+   - Background music management with volume control
+   - Sound effect triggering for player actions and environmental events
+   - Audio resource management with preloading
+
+6. **Physics Integration**
+   - Box2D world simulation with custom gravity settings
+   - Conversion between pixel coordinates and physics units (meters)
+   - Custom collision filtering for different object types
+   - Ray casting for ground detection and other physics queries
+
+## 📁 Project Structure
 
 ```
 CSClassGame/
-│── assets/            # Game assets (images, fonts, music)
-│   ├── backgrounds/   # Background images
-│   ├── blocks/        # Block images
-│   ├── buttons/       # Button images
-│   ├── enemy/         # Enemy images
-│   ├── fonts/         # Font files
-│   ├── gun/           # Gun images
-│   ├── music/         # Music files
-│   └── player/        # Player images
 │
-│── include/           # Header files
-│   ├── box2d/         # Box2D headers
-│   ├── levels/        # Level headers
-│   ├── SDL2/          # SDL2 headers
-│   ├── bullet.hpp     # Bullet class header
-│   ├── buttons.hpp    # Buttons class header
-│   ├── CONSTANTS.hpp  # Constants header
-│   ├── enemy.hpp      # Enemy class header
-│   ├── game.hpp       # Game class header
-│   ├── GameState.hpp  # GameState class header
-│   ├── mainmenu.hpp   # Main menu header
-│   ├── player.hpp     # Player class header
-│   ├── sprite.hpp     # Sprite class header
-│   └── textures.hpp   # Textures header
+├── assets/                  # Game assets
+│   ├── backgrounds/         # Background images for levels and menus
+│   ├── blocks/              # Block textures (dirt, ice, parkour, etc.)
+│   ├── buttons/             # UI button textures
+│   ├── enemy/               # Enemy character sprites
+│   ├── fonts/               # Font files for text rendering
+│   ├── gun/                 # Weapon textures
+│   ├── input_box/           # UI input elements
+│   ├── lamps/               # Light source textures
+│   ├── music/               # Background music tracks
+│   ├── player/              # Player character animations
+│   │   ├── idle/            # Idle animation frames
+│   │   ├── jump/            # Jump animation frames
+│   │   ├── land/            # Landing animation frames
+│   │   ├── sprint/          # Running animation frames
+│   │   └── walk/            # Walking animation frames
+│   ├── snow/                # Snow particle textures
+│   ├── sounds/              # Sound effect files
+│   ├── trivia/              # Trivia level assets
+│   └── video/               # Video files for cutscenes
 │
-│── levels/            # Level definition files
-│   ├── info.txt       # Level info
-│   ├── lvl1.txt       # Level 1 definition
-│   └── lvl_last.txt   # Last level definition
+├── include/                 # Header files
+│   ├── box2d/               # Box2D physics engine headers
+│   ├── levels/              # Level class headers
+│   │   ├── Credits.hpp      # Credits screen implementation
+│   │   ├── Level.hpp        # Base level class
+│   │   ├── LevelHardParkour.hpp # Parkour level implementation
+│   │   ├── LevelLamp.hpp    # Lamp puzzle level
+│   │   ├── LevelLast.hpp    # Final level/boss fight
+│   │   ├── LevelOne.hpp     # First main level
+│   │   ├── LevelTrivia.hpp  # Trivia challenge level
+│   │   └── LevelZero.hpp    # Tutorial level
+│   ├── ogg/                 # Ogg format headers
+│   ├── SDL2/                # SDL2 library headers
+│   ├── theora/              # Theora video headers
+│   ├── vorbis/              # Vorbis audio headers
+│   ├── bullet.hpp           # Projectile implementation
+│   ├── buttons.hpp          # UI button system
+│   ├── CONSTANTS.hpp        # Global constants and settings
+│   ├── enemy.hpp            # Enemy character implementation
+│   ├── game.hpp             # Main game class
+│   ├── GameState.hpp        # Game state management
+│   ├── mainmenu.hpp         # Main menu implementation
+│   ├── player.hpp           # Player character implementation
+│   ├── soundmanager.hpp     # Audio system management
+│   ├── sprite.hpp           # Base sprite class
+│   └── textures.hpp         # Texture loading utilities
 │
-│── lib/               # External libraries
-│   ├── SDL2_image.lib
-│   ├── SDL2_mixer.lib
-│   └── SDL2_ttf.lib
+├── levels/                  # Level definition files
+│   ├── hard_parkour_1.txt   # Parkour challenge level 1
+│   ├── hard_parkour_2.txt   # Parkour challenge level 2
+│   ├── hard_parkour_3.txt   # Parkour challenge level 3
+│   ├── info.txt             # Level information
+│   ├── lvl1.txt             # Main level 1 layout
+│   ├── lvl_last.txt         # Final level layout
+│   └── maze.txt             # Maze level layout
 │
-│── src/               # Source code
-│── .gitignore         # Git ignore file
-│── .vscode/           # VSCode settings
-│── a.exe              # Executable file
-│── main.cpp           # Main source file
-│── Makefile           # Makefile for building
-└── README.md          # This README file
+├── lib/                     # External library binaries
+│
+├── src/                     # Source code implementation
+│   ├── collision/           # Box2D collision handling
+│   ├── common/              # Common utilities
+│   ├── dynamics/            # Box2D dynamics implementation
+│   ├── rope/                # Rope physics implementation
+│   ├── GameState.cpp        # Game state implementation
+│   └── theoraplay.c         # Theora video playback
+│
+├── main.cpp                 # Application entry point
+├── Makefile                 # Build configuration
+└── README.md                # Project documentation
 ```
 
----
+## 🎯 Game Components
 
-##  Key Features
+### Player System
 
-###  Level System
-- Levels are **loaded from text files**
-- **Tile-based level design** with different block types
-- Support for **multiple levels** (`lvl1.txt`, `lvl_last.txt`, ...)
+The `Player` class (`player.hpp`) implements a sophisticated character with:
 
-### ‍️ Player Mechanics
-- **Physics-based movement**
-- **Shooting capability**
-- **Health system**
-- **Bullet management**
+- **State-based behavior** (idle, walking, jumping, falling, sprinting, dashing)
+- **Physics-based movement** with Box2D integration
+- **Advanced ground detection** using ray casting
+- **Animation system** with frame-based animations for each state
+- **Weapon mechanics** with aiming and shooting
+- **Health and ammunition** management
+- **Sound effect integration** for actions like jumping, shooting, and walking
 
-###  Graphics
-- **Sprite-based rendering**
-- **HUD** displaying player stats (health, bullets)
-- **Custom font rendering**
+Key player features:
+```cpp
+// Player states
+enum PlayerState {
+  IDLE, WALKING, JUMPING, FALLING, SPRINT, DASHING
+};
 
-###  Physics
-- **Box2D integration** for realistic physics simulation
-- **Collision detection**
-- **Static and dynamic bodies**
+// Movement parameters
+int runSpeed = 30;
+int walkSpeed = 15;
+int jumpForce = 60;
+int dashForce = 150;
+float dashVelocity = 250.0f;
 
-###  Audio
-- **Background music** support
-- **Sound effects** system
+// Animation system
+std::map<PlayerState, Animation> animations;
+```
 
----
+### Level System
 
-## ️Building and Running
+The base `Level` class (`levels/Level.hpp`) provides:
 
-This project uses **Make** for building.
+- **Box2D physics world** management
+- **Tile-based level loading** from text files
+- **Block creation and management** with different types and properties
+- **Player and enemy integration**
+- **Environmental effects** like snow particles
+- **Collision detection** between game elements
 
-###  Build the Project:
+Level types include:
+- **Tutorial levels** for introducing game mechanics
+- **Parkour challenges** with precise jumping sequences
+- **Puzzle levels** requiring specific interactions
+- **Trivia challenges** with question-answer gameplay
+- **Boss fights** with unique enemy behaviors
+
+Block types include:
+- **Dirt blocks** (`D`) - Standard solid platforms
+- **Maze blocks** (`m`) - Slippery ice-like surfaces
+- **Parkour blocks** (`p`) - Smaller platforms for challenging jumps
+- **Crumbling blocks** - Platforms that disappear after being touched
+- **Exit blocks** (`e`) - Level completion triggers
+
+### Physics System
+
+The game uses Box2D for realistic physics with:
+
+- **Custom gravity settings** for different level types
+- **Precise collision detection** with fixture shapes
+- **Material properties** like friction and restitution
+- **Ray casting** for ground detection and line-of-sight checks
+- **Dynamic and static bodies** for different game elements
+- **Joints** for connected objects
+- **Collision filtering** to control what objects interact
+
+Physics integration example:
+```cpp
+// Create player physics body
+b2BodyDef bodyDef;
+bodyDef.type = b2_dynamicBody;
+bodyDef.position.Set((x + W_SPRITESIZE / 2) / PPM, (y + W_SPRITESIZE / 2) / PPM);
+bodyDef.fixedRotation = true;
+body = world->CreateBody(&bodyDef);
+
+// Create collision shape
+float hitboxScale = 0.7f;
+b2PolygonShape shape;
+shape.SetAsBox((playerWidth / 2 * hitboxScale) / PPM, (playerHeight / 2 * hitboxScale) / PPM);
+
+// Set up physics properties
+b2FixtureDef fixtureDef;
+fixtureDef.shape = &shape;
+fixtureDef.density = 1.0f;
+fixtureDef.friction = 0.001f;
+fixtureDef.restitution = 0.05f;
+```
+
+### Graphics System
+
+The rendering system features:
+
+- **Sprite-based rendering** with the `Sprite` base class
+- **Animation system** for frame-based character animations
+- **Texture caching** to optimize memory usage
+- **Particle effects** for environmental elements
+- **Debug visualization** for physics objects
+- **HUD rendering** for player stats and game information
+
+### Audio System
+
+The `SoundManager` singleton provides:
+
+- **Background music** playback with volume control
+- **Sound effect** triggering with spatial positioning
+- **Resource management** for audio files
+- **Channel management** for multiple simultaneous sounds
+
+Audio implementation:
+```cpp
+// Music loading and playback
+SOUND_MANAGER.loadMusic("menu", "assets/music/Sadness to happiness.wav");
+SOUND_MANAGER.loadMusic("boss", "assets/music/La Fiola 2.wav");
+SOUND_MANAGER.playMusic("menu");
+SOUND_MANAGER.setMusicVolume(10);
+
+// Sound effects
+SOUND_MANAGER.loadSoundEffect("click", "assets/sounds/click.wav");
+SOUND_MANAGER.loadSoundEffect("jump", "assets/sounds/jump.wav");
+SOUND_MANAGER.loadSoundEffect("shoot", "assets/sounds/shoot.wav");
+```
+
+### UI System
+
+The user interface includes:
+
+- **Main menu** with buttons for game options
+- **In-game HUD** showing player health and ammunition
+- **Level transition screens**
+- **Credits display**
+- **Button system** with hover and click effects
+
+## 🚀 Building and Running
+
+### Prerequisites
+
+- C++ compiler with C++11 support
+- SDL2, SDL2_image, SDL2_ttf, and SDL2_mixer libraries
+- Box2D physics library
+
+### Build Instructions
+
+The project uses a Makefile for building:
+
 ```bash
+# Clone the repository
+git clone https://github.com/yourusername/CSClassGame.git
+cd CSClassGame
+
+# Build the project
 make
-```
 
-### ️ Run the Executable:
-```bash
+# Run the game
 ./a.exe
 ```
 
+## 🎮 Gameplay
+
+### Controls
+
+- **WASD** or **Arrow Keys**: Move the player
+- **Space**: Jump
+- **Shift**: Sprint
+- **Left Mouse Button**: Shoot
+- **Mouse Movement**: Aim weapon
+- **R**: Reload weapon
+- **Q**: Quit game
+
+### Game Flow
+
+1. **Main Menu**: Select "Play" to start the game
+2. **Level Progression**: Complete each level to advance to the next
+3. **Challenges**: Navigate platforms, solve puzzles, defeat enemies
+4. **Final Level**: Defeat the boss to complete the game
+5. **Credits**: View the game credits after completion
+
+## 🧠 Technical Insights
+
+### Physics Optimization
+
+- **Sleep management** for inactive bodies
+- **Broadphase collision detection** to reduce collision checks
+- **Custom collision filtering** to optimize interactions
+- **Fixture caching** to reduce memory allocation
+
+### Memory Management
+
+- **Texture caching** to avoid redundant loading
+- **Smart pointers** for automatic resource cleanup
+- **Object pooling** for frequently created/destroyed objects
+- **Explicit cleanup** in destructors to prevent memory leaks
+
+### Performance Considerations
+
+- **Frame rate management** to ensure consistent gameplay
+- **Render culling** for off-screen objects
+- **Physics step tuning** for balance between accuracy and performance
+- **Asset preloading** to minimize loading times
+
+## 🔧 Extending the Game
+
+### Adding New Levels
+
+1. Create a new level text file in the `levels/` directory
+2. Implement a new level class inheriting from `Level`
+3. Add the level to the level selection system in `Game::update()`
+
+### Creating New Block Types
+
+1. Add a new character identifier in the level file format
+2. Create textures for the new block type
+3. Implement the block's behavior in `Level::readLevel()`
+
+### Adding New Enemies
+
+1. Extend the `Enemy` class or create a new enemy class
+2. Implement unique behavior and rendering
+3. Add the enemy to level files with a new identifier
+
+## 🌟 Credits
+
+Game created by Mouttaki Omar (王明清)
+
 ---
 
-##  Code Overview
-
-### **Main File**
-The entry point is `main.cpp`. It initializes the game and starts the game loop.
-
-### **Game Class (`game.hpp`)**
-Handles the main **game loop**, **rendering**, and **event handling**.
-
-**Methods:**
-- `Game::Game()`: Constructor that initializes the game.
-- `void Game::run()`: Starts the game loop.
-- `void Game::update()`: Updates the game state.
-- `void Game::render()`: Renders the game.
-- `void Game::handleEvents()`: Handles user input events.
-- `void Game::clean()`: Cleans up resources.
-
-### **Level System**
-Each level is defined in a separate class.
-
-Example:
-- `LevelOne` → Defined in `LevelOne.hpp`
-- `LevelLast` → Defined in `LevelLast.hpp`
-
-**Methods:**
-- `LevelOne::LevelOne(SDL_Renderer* renderer)`: Constructor that loads Level 1.
-- `void LevelOne::render(SDL_Renderer* renderer)`: Renders Level 1.
-- `void LevelOne::handleEvents(SDL_Event* event, SDL_Renderer* renderer)`: Handles events for Level 1.
-- `LevelOne::~LevelOne()`: Destructor that cleans up resources.
-
-### **Player Class (`player.hpp`)**
-Handles **player mechanics**, including movement, shooting, and health.
-
-**Methods:**
-- `Player::Player(SDL_Renderer *renderer, b2World *world, int x, int y)`: Initializes the player.
-- `void Player::handleEvents(SDL_Event *event, SDL_Renderer *renderer)`: Handles player input.
-- `void Player::update()`: Updates the player state.
-- `void Player::render(SDL_Renderer *renderer)`: Renders the player.
-- `void Player::fireBullet(SDL_Renderer *renderer)`: Fires a bullet.
-- `void Player::updateBullets()`: Updates the bullets.
-- `void Player::renderBullets(SDL_Renderer *renderer)`: Renders the bullets.
-- `void Player::takeDamage(int damage)`: Reduces the player's health.
-
-### **Enemy Class (`enemy.hpp`)**
-Handles **enemy interactions and behavior**.
-
-**Methods:**
-- `Enemy::Enemy(SDL_Renderer *renderer)`: Initializes the enemy.
-- `void Enemy::update()`: Updates enemy state.
-- `void Enemy::render(SDL_Renderer *renderer)`: Renders the enemy.
-- `void Enemy::fireBullet(SDL_Renderer *renderer)`: Fires a bullet.
-- `void Enemy::updateBullets()`: Updates the bullets.
-- `void Enemy::takeDamage(int damage)`: Reduces enemy health.
-
-### **Audio System**
-Uses `SDL2_mixer`:
-- **Background music** (`Mix_LoadMUS`, `Mix_PlayMusic`)
-- **Sound effects** (`Mix_Chunk`, `Mix_PlayChannel`)
-
-### **Font System**
-Uses `SDL2_ttf`:
-- **Load fonts** (`TTF_OpenFont`)
-- **Render text** (`TTF_RenderText`)
-
-### **Physics (Box2D)**
-- **Physics world updates** inside the `Level` class
-- **Physics bodies** assigned to the **player, blocks, bullets**
-
-### **Sprite Class (`sprite.hpp`)**
-Base class for all **drawable objects**.
-
-**Methods:**
-- `Sprite::Sprite()`: Initializes the sprite.
-- `bool Sprite::loadFromFile(const char* path, SDL_Renderer* renderer)`: Loads a texture.
-- `void Sprite::render(SDL_Renderer* renderer, int x, int y)`: Renders the sprite.
-- `void Sprite::setPosition(int x, int y)`: Sets position.
-- `void Sprite::setSize(int w, int h)`: Sets size.
-
-### **GameState (`GameState.hpp`)**
-Global **game state variables**.
-
-**Variables:**
-- `bool running`: Game is running.
-- `int current_level`: Current level.
-- `bool isMenu`: Game is in the menu.
-- `bool isLoading`: Game is loading.
-
-**Functions:**
-- `void quitGame()`: Quits the game.
-- `void setCurrentLevel(int level)`: Sets current level.
+*This README provides a comprehensive overview of the El Captcha Oscuro game codebase. For specific implementation details, refer to the source code files.*
