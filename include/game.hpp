@@ -8,7 +8,6 @@
 #include <GameState.hpp>
 #include <SDL2/SDL.h>
 #include <levels/Level.hpp>
-#include <levels/LevelMaze.hpp>
 #include <levels/LevelOne.hpp>
 #include <levels/LevelTrivia.hpp>
 #include <levels/LevelZero.hpp>
@@ -136,17 +135,10 @@ void Game::update() {
       if (current_level_obj != nullptr) {
         delete current_level_obj;
       }
-      current_level_obj = new LevelMaze(renderer);
-      GameState::isLoading = false;
-      break;
-    case 5:
-      if (current_level_obj != nullptr) {
-        delete current_level_obj;
-      }
       current_level_obj = new LevelHardParkour(renderer);
       GameState::isLoading = false;
       break;
-    case 6:
+    case 5:
       if (current_level_obj != nullptr) {
         delete current_level_obj;
       }

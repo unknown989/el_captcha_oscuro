@@ -80,6 +80,7 @@ private:
   int dashCooldown = 60; // Frames to wait between dashes (60 frames = 1 second at 60 FPS)
   int dashTimer = 0;            // Current dash time
   int dashCooldownTimer = 1000; // Current cooldown time
+  bool isFirstDash = true;
 
   // Animation properties
   struct Animation {
@@ -981,13 +982,13 @@ void Player::handleEvents(SDL_Event *event, SDL_Renderer *renderer) {
     case SDLK_LSHIFT:
     case SDLK_RSHIFT:
       // Initiate dash if not on cooldown and not already dashing
-      if (dashCooldownTimer == 0 && !isDashing) {
+      if ((dashCooldownTimer == 0 && !isDashing) || isFirstDash) {
         isDashing = true;
         dashTimer = dashDuration;
         // Store previous state and update current state immediately
         previousState = state;
         state = DASHING;
-        
+        isFirstDash = false;
         // Get current velocity and apply dash while preserving vertical momentum
         b2Vec2 currentVel = body->GetLinearVelocity();
         

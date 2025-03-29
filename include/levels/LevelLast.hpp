@@ -119,7 +119,7 @@ void LevelLast::update() {
       enemyMovementTimer = 0;
 
       // Randomly select a new movement pattern
-      movementPattern = rand() % 5; // 5 different patterns
+      movementPattern = rand() % 4; // 5 different patterns
 
       // Make intervals shorter as enemy health decreases
       float healthPercent = static_cast<float>(enemy->getHealth()) / 400.0f;
@@ -154,26 +154,17 @@ void LevelLast::update() {
         if (dist > 5) {
           enemy->setPosition(
               enemyX + (dx / dist) * moveSpeed,
-              std::max(100.0f, enemyY + (dy / dist) * moveSpeed));
+              std::max(200.0f, enemyY + (dy / dist) * moveSpeed));
         }
       }
       break;
-
-    case 1: // Random teleportation (only when aggressive)
-      if (isEnemyAggressive && enemyMovementTimer == 1) {
-        float newX = 100 + rand() % (screenWidth - 200);
-        float newY = 100 + rand() % (screenHeight - 300);
-        enemy->setPosition(newX, newY);
-      }
-      break;
-
-    case 2: // Zigzag horizontal movement
+    case 1: // Zigzag horizontal movement
     {
       float zigzagSpeed = isEnemyAggressive ? 6.0f : 3.0f;
       float zigzagY = sin(enemyMovementTimer * 0.1f) * 50;
       enemy->setPosition(enemyX +
                              (isEnemyAggressive ? -zigzagSpeed : zigzagSpeed),
-                         std::max(100.0f, enemyY + zigzagY * 0.5f));
+                         std::max(200.0f, enemyY + zigzagY * 0.5f));
 
       // Bounce off screen edges
       if (enemyX < 50 || enemyX > screenWidth - 50) {
@@ -181,15 +172,15 @@ void LevelLast::update() {
       }
     } break;
 
-    case 3: // Vertical bouncing
+    case 2: // Vertical bouncing
     {
       float bounceSpeed = isEnemyAggressive ? 5.0f : 2.5f;
       enemy->setPosition(
-          enemyX, std::max(100.0f, enemyY + (sin(enemyMovementTimer * 0.05f) *
+          enemyX, std::max(200.0f, enemyY + (sin(enemyMovementTimer * 0.05f) *
                                              bounceSpeed)));
     } break;
 
-    case 4: // Chase player (only when aggressive)
+    case 3: // Chase player (only when aggressive)
       if (player && isEnemyAggressive) {
         float dx = player->getX() - enemyX;
         float dy = player->getY() - enemyY;
@@ -198,7 +189,7 @@ void LevelLast::update() {
         if (dist > 100) { // Don't get too close
           enemy->setPosition(
               enemyX + (dx / dist) * moveSpeed,
-              std::max(100.0f, enemyY + (dy / dist) * moveSpeed));
+              std::max(200.0f, enemyY + (dy / dist) * moveSpeed));
         }
       }
       break;

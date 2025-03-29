@@ -26,12 +26,16 @@ struct Snowflake {
 // A block is a simple sprite with a type
 class Block : public Sprite {
 public:
-  Block(SDL_Renderer* renderer, const char* path) {
+  Block(SDL_Renderer* renderer, const char* path) 
+    : isCrumbling(false), crumbleTimer(-1.0f), timeToCrumble(2.0f), body(nullptr), isVisible(true) // Initialize new members
+  {
     loadFromFile(path, renderer);
     setSize(W_SPRITESIZE, W_SPRITESIZE);
   }
   
-  Block(SDL_Texture* texture) {
+  Block(SDL_Texture* texture)
+    : isCrumbling(false), crumbleTimer(-1.0f), timeToCrumble(2.0f), body(nullptr), isVisible(true) // Initialize new members
+  {
     this->texture = texture;
     setSize(W_SPRITESIZE, W_SPRITESIZE);
     // Set source rectangle for rendering
@@ -40,7 +44,37 @@ public:
     srcRect.w = W_SPRITESIZE;
     srcRect.h = W_SPRITESIZE;
   }
+  
   char type;
+  bool isCrumbling;      // Is the timer active?
+  float crumbleTimer;    // Time left before disappearing
+  float timeToCrumble;   // How long the block lasts after touch
+  b2Body* body;          // Pointer to its physics body
+  bool isVisible;        // Control rendering
+  
+  // Custom render method
+  void render(SDL_Renderer *renderer, int x, int y) {
+      if (!isVisible) return; // Don't render if crumbled
+      
+      // Optional: Add visual effect for crumbling (e.g., change color/alpha)
+      if (isCrumbling) {
+          // Example: Fade out effect
+          float alpha = (crumbleTimer / timeToCrumble) * 255.0f;
+          if (alpha < 0) alpha = 0;
+          if (alpha > 255) alpha = 255;
+          SDL_SetTextureAlphaMod(texture, static_cast<Uint8>(alpha));
+          
+          // Debug message for crumbling
+          SDL_Log("Rendering crumbling block: timer=%.2f, alpha=%.0f", crumbleTimer, alpha);
+      } else {
+          SDL_SetTextureAlphaMod(texture, 255); // Reset alpha if not crumbling
+      }
+      
+      Sprite::render(renderer, x, y); // Call base class render
+      
+      // Reset alpha mod after rendering this block
+      SDL_SetTextureAlphaMod(texture, 255);
+  }
 };
 
 // The base class for all levels
@@ -69,14 +103,19 @@ public:
 
 protected:
   std::vector<Block *> blocks;
+  std::vector<Block *> exitBlocks;
   SDL_Texture *background = nullptr;
   Player *player;
   b2Vec2 gravity;
+  SDL_Renderer *renderer;
   b2World *world;
   bool isLoaded = false;
   Enemy *enemy;
   bool over = false;
   bool debugDraw = false;  // Flag to toggle debug drawing
+  
+  // Queue for physics bodies to be destroyed safely after world step
+  std::vector<b2Body*> bodiesToDestroy;
   
   // Texture cache to avoid reloading the same textures
   std::map<std::string, SDL_Texture*> textureCache;
@@ -124,7 +163,7 @@ SDL_Texture* Level::getTexture(const char* path, SDL_Renderer* renderer) {
   return newTexture;
 }
 
-Level::Level(SDL_Renderer *renderer) : gravity(0.0f, 0.7f) {
+Level::Level(SDL_Renderer *renderer) : gravity(0.0f, 0.7f), renderer(renderer) {
   // box2d setup
   world = new b2World(gravity);
   world->SetAllowSleeping(false);
@@ -305,43 +344,37 @@ void Level::readLevel(const char *path, SDL_Renderer *renderer) {
     case 'p': {
       SDL_Texture* texture = getTexture("assets/blocks/parkour.png", renderer);
       if (!texture) {
-        // Fallback to maze texture if parkour texture doesn't exist
         texture = getTexture("assets/blocks/maze.png", renderer);
       }
       
       if (texture) {
         block = new Block(texture);
         block->type = blockType;
-        
-        // Set block position in pixels
         block->setPosition(col * W_SPRITESIZE, row * W_SPRITESIZE);
         
-        // Same coordinate conversion as other blocks
         float xPos = (col * W_SPRITESIZE) + (W_SPRITESIZE/2);
         float yPos = (row * W_SPRITESIZE) + (W_SPRITESIZE/2);
         
         b2BodyDef blockBodyDef;
-        blockBodyDef.type = b2_staticBody;
+        blockBodyDef.type = b2_staticBody; // Keep static for now
         blockBodyDef.position.Set(xPos / PPM, yPos / PPM);
         b2Body *blockBody = world->CreateBody(&blockBodyDef);
         
-        // Make parkour blocks even smaller for challenging jumps
+        // Store the body pointer in the Block object
+        block->body = blockBody; 
+        
         float hitboxScale = 0.5f;
         b2PolygonShape blockShape;
-        blockShape.SetAsBox(
-            (W_SPRITESIZE/2 * hitboxScale) / PPM, 
-            (W_SPRITESIZE/2 * hitboxScale) / PPM
-        );
+        blockShape.SetAsBox((W_SPRITESIZE * hitboxScale) / PPM, (W_SPRITESIZE * hitboxScale) / PPM);
         
         b2FixtureDef blockFixtureDef;
         blockFixtureDef.shape = &blockShape;
         blockFixtureDef.density = 1.0f;
-        blockFixtureDef.friction = 0.001f;  // Nearly zero friction for icy sliding effect
-        blockFixtureDef.restitution = 0.05f;  // Slight bounce for smoother movement
+        blockFixtureDef.friction = 0.001f; 
+        blockFixtureDef.restitution = 0.05f;
         
-        // Add collision filtering
-        blockFixtureDef.filter.categoryBits = 0x0001;  // Block category
-        blockFixtureDef.filter.maskBits = 0xFFFF;      // Collide with everything
+        // Store the Block pointer in the fixture's user data for the listener
+        blockFixtureDef.userData.pointer = reinterpret_cast<uintptr_t>(block);
         
         blockBody->CreateFixture(&blockFixtureDef);
       }
@@ -376,6 +409,32 @@ void Level::readLevel(const char *path, SDL_Renderer *renderer) {
         
         // Set block position in pixels
         block->setPosition(col * W_SPRITESIZE, row * W_SPRITESIZE);
+        
+        // Create a static body for collision detection, but make it a sensor
+        float xPos = (col * W_SPRITESIZE) + (W_SPRITESIZE/2);
+        float yPos = (row * W_SPRITESIZE) + (W_SPRITESIZE/2);
+        
+        b2BodyDef exitBodyDef;
+        exitBodyDef.type = b2_staticBody;
+        exitBodyDef.position.Set(xPos / PPM, yPos / PPM);
+        b2Body *exitBody = world->CreateBody(&exitBodyDef);
+        
+        b2PolygonShape exitShape;
+        // Use a slightly smaller hitbox for the sensor if needed, or full size
+        exitShape.SetAsBox((W_SPRITESIZE/2) / PPM, (W_SPRITESIZE/2) / PPM); 
+        
+        b2FixtureDef exitFixtureDef;
+        exitFixtureDef.shape = &exitShape;
+        exitFixtureDef.isSensor = true; // Make it a sensor so player passes through
+        
+        // Store the Block pointer in userData to identify it during collision
+        // Use a struct or pair if you need to store more data later
+        exitFixtureDef.userData.pointer = reinterpret_cast<uintptr_t>(block); 
+        
+        exitBody->CreateFixture(&exitFixtureDef);
+        
+        // Add to a separate list if needed, or just the main blocks list
+        exitBlocks.push_back(block); // Keep track for rendering if needed
       }
       break;
     }
@@ -397,21 +456,85 @@ void Level::readLevel(const char *path, SDL_Renderer *renderer) {
 }
 
 void Level::update() {
-  // First update player physics (apply forces)
+  // --- Update Crumbling Blocks --- 
+  float timeStep = 1.0f / 60.0f; // Assuming 60 FPS, get this properly if possible
+  
+  // Count crumbling blocks for debug
+  int crumblingBlockCount = 0;
+  
+  for (Block* block : blocks) {
+      // Ensure block pointer is valid before accessing members
+      if (!block) continue; 
+      
+      // Debug: Log parkour block state periodically 
+      if (block->type == 'p') {
+          static int frameCounter = 0;
+          if (frameCounter++ % 60 == 0) { // Log every 60 frames
+              SDL_Log("Parkour block status: isCrumbling=%d, timer=%.2f, isVisible=%d", 
+                     block->isCrumbling, block->crumbleTimer, block->isVisible);
+          }
+      }
+      
+      if (block->type == 'p' && block->isCrumbling) {
+          crumblingBlockCount++;
+          
+          block->crumbleTimer -= timeStep;
+          SDL_Log("Updating crumbling block timer: %.2f", block->crumbleTimer);
+          
+          if (block->crumbleTimer <= 0) {
+              // Timer finished, mark for destruction and hide
+              if (block->body && block->isVisible) { // Check if body exists and not already marked
+                  SDL_Log("Parkour block timer finished. Queuing body %p for destruction.", block->body);
+                  bodiesToDestroy.push_back(block->body);
+                  block->isVisible = false; // Stop rendering
+                  block->isCrumbling = false; // Stop timer updates
+                  block->body = nullptr; // Prevent adding again
+              }
+          }
+      }
+  }
+  
+  // Debug: log the count of crumbling blocks
+  if (crumblingBlockCount > 0) {
+      SDL_Log("Total crumbling blocks: %d", crumblingBlockCount);
+  }
+
+  // --- Update Player Physics --- 
   if (player) {
     player->updatePhysics();
   }
 
-  // Then step the physics world
-  const float timeStep = 1.0f / 60.0f;
+  // --- Step Physics World --- 
   const int velocityIterations = 8;
   const int positionIterations = 3;
-  world->Step(timeStep, velocityIterations, positionIterations);
+  if (world) { // Ensure world exists before stepping
+      world->Step(timeStep, velocityIterations, positionIterations);
+  }
 
-  // Finally update player position based on physics
+  // --- Destroy Queued Bodies --- 
+  // Safely destroy bodies AFTER the world step
+  if (world && !bodiesToDestroy.empty()) {
+       SDL_Log("Processing destruction queue: %zu bodies.", bodiesToDestroy.size());
+       for (b2Body* body : bodiesToDestroy) {
+           if (body) { // Double check pointer is valid
+               SDL_Log("Destroying body %p", body);
+               world->DestroyBody(body);
+           } else {
+               SDL_Log("Attempted to destroy a null body pointer in queue.");
+           }
+       }
+       bodiesToDestroy.clear(); // Clear the queue
+       SDL_Log("Destruction queue processed.");
+  }
+
+  // --- Update Player Position/State (Based on new physics state) --- 
   if (player) {
     player->update();
   }
+  
+  // --- Update Snow --- 
+  // Update snow physics - keep animation smooth
+  updateSnowEffect(); 
 }
 
 void Level::render(SDL_Renderer *renderer) {

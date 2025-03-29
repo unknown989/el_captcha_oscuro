@@ -4,3 +4,5 @@ P = Player
 E = enemy
 p = parkour block
 e = exit block
+
+Every level is set in an aspect ratio of 34:17
