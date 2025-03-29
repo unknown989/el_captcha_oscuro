@@ -91,7 +91,7 @@ Game::Game() {
       renderer,
       [this] {
         GameState::isMenu = false;
-        GameState::setCurrentLevel(3);
+        GameState::setCurrentLevel(0);
         GameState::isLoading = true;
       },
       NULL, [] { GameState::running = false; });
